@@ -1,0 +1,36 @@
+run:
+  timezone: Asia/Shanghai
+  output_dir: reports
+  data_dir: data
+  log_dir: logs
+  max_total_news: 100
+
+sources:
+  sina:
+    enabled: true
+    max_items: 30
+  wallstreetcn:
+    enabled: true
+    max_items: 30
+  cls:
+    enabled: true
+    max_items: 30
+  bloomberg:
+    enabled: false
+    feed_url: ""
+    max_items: 20
+  reuters:
+    enabled: false
+    feed_url: ""
+    max_items: 20
+
+ai:
+  provider: deepseek
+  base_url: https://api.deepseek.com
+  model: deepseek-chat
+  max_news_per_batch: 10
+  temperature: 0.2
+
+report:
+  title: 每日财经新闻分析报告
+  language: zh-CN
