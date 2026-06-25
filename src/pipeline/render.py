@@ -70,6 +70,106 @@ def _watchlist_risk(news_list_for_ind):
     return "低"
 
 
+# ---------- v3.1 股票交易推荐 ----------
+
+def _compute_stock_recommendations(stock_map: dict[str, dict]) -> list[dict]:
+    """基于 AI 分析数据计算每只股票的交易推荐信号。
+
+    返回推荐列表，按 |avg_signal| * confidence 降序排列。
+    """
+    SENTIMENT_MAP = {"利好": 1, "中性": 0, "利空": -1}
+
+    recommendations = []
+    for code, info in stock_map.items():
+        mentions = info.get("mentions", [])
+        count = info["count"]
+        if not mentions or count < 1:
+            continue
+
+        # 1. signal_score = sum(sentiment_value * impact_score)
+        signal_score = 0.0
+        for m in mentions:
+            sv = SENTIMENT_MAP.get(m["sentiment"], 0)
+            signal_score += sv * m.get("impact_score", 0)
+
+        # 2. avg_signal（按提及次数归一化）
+        avg_signal = round(signal_score / count, 2)
+
+        # 3. 一致性：主导方向占比
+        pos_count = sum(1 for m in mentions if SENTIMENT_MAP.get(m["sentiment"], 0) > 0)
+        neg_count = sum(1 for m in mentions if SENTIMENT_MAP.get(m["sentiment"], 0) < 0)
+        neu_count = count - pos_count - neg_count
+        dominant = max(pos_count, neg_count, neu_count)
+        consensus = round(dominant / count, 2)
+
+        # 4. 推荐等级（基于 avg_signal 阈值）
+        if avg_signal >= 5.0:
+            recommendation = "买入"
+        elif avg_signal >= 2.0:
+            recommendation = "增持"
+        elif avg_signal > -2.0:
+            recommendation = "观望"
+        elif avg_signal >= -5.0:
+            recommendation = "减持"
+        else:
+            recommendation = "卖出"
+
+        # 5. 信号强度 = min(count * 2, 10) + 一致性加分（上限 10）
+        base_confidence = min(count * 2, 10)
+        consensus_bonus = 2 if consensus >= 0.8 else (1 if consensus >= 0.6 else 0)
+        confidence = min(base_confidence + consensus_bonus, 10)
+
+        # 6. 关键理由：取影响力最高的 bullish_bearish
+        best_mention = max(mentions, key=lambda m: m.get("impact_score", 0))
+        key_reason = best_mention.get("bullish_bearish", "")
+
+        # 7. 主导周期
+        trend_counts: dict[str, int] = {}
+        for m in mentions:
+            t = m.get("trend", "短期")
+            trend_counts[t] = trend_counts.get(t, 0) + 1
+        dominant_trend = max(trend_counts, key=trend_counts.get)
+
+        # 8. 主导风险等级
+        risk_counts: dict[str, int] = {}
+        for m in mentions:
+            r = m.get("risk_level", "低")
+            risk_counts[r] = risk_counts.get(r, 0) + 1
+        dominant_risk = max(risk_counts, key=risk_counts.get)
+
+        # 9. 聚合情绪标签
+        s_list = info.get("sentiments", [])
+        pos = sum(1 for s in s_list if s == "利好")
+        neg = sum(1 for s in s_list if s == "利空")
+        sentiment_label = "利好" if pos > neg else ("利空" if neg > pos else "中性")
+
+        recommendations.append({
+            "name": info["name"],
+            "code": info["code"],
+            "count": count,
+            "recommendation": recommendation,
+            "avg_signal": avg_signal,
+            "confidence": confidence,
+            "consensus": consensus,
+            "sentiment_label": sentiment_label,
+            "positive_count": pos,
+            "negative_count": neg,
+            "neutral_count": neu_count,
+            "risk_level": dominant_risk,
+            "trend": dominant_trend,
+            "key_reason": key_reason,
+            "news_titles": info.get("news_titles", []),
+        })
+
+    # 按 |avg_signal| * confidence 降序排列（最强信号在前）
+    recommendations.sort(
+        key=lambda r: abs(r["avg_signal"]) * r["confidence"],
+        reverse=True,
+    )
+
+    return recommendations
+
+
 # ---------- 主聚合函数 ----------
 
 def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
@@ -209,17 +309,29 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
                     "count": 0,
                     "sentiments": [],
                     "news_titles": [],
+                    "mentions": [],     # v3.1: 每条提及的详细分析数据
                 }
             stock_map[code]["count"] += 1
             stock_map[code]["sentiments"].append(a.get("sentiment", "中性"))
-            if len(stock_map[code]["news_titles"]) < 3:
+            if len(stock_map[code]["news_titles"]) < 5:
                 stock_map[code]["news_titles"].append(news.get("title", ""))
+            # v3.1: 收集每条提及的详细数据，用于计算交易推荐
+            stock_map[code]["mentions"].append({
+                "sentiment": a.get("sentiment", "中性"),
+                "impact_score": a.get("impact_score", 0),
+                "bullish_bearish": a.get("bullish_bearish", ""),
+                "trend": a.get("trend", "短期"),
+                "risk_level": a.get("risk_level", "低"),
+            })
 
     for stock_info in stock_map.values():
         s_list = stock_info["sentiments"]
         pos = sum(1 for s in s_list if s == "利好")
         neg = sum(1 for s in s_list if s == "利空")
         stock_info["sentiment_label"] = "利好" if pos > neg else ("利空" if neg > pos else "中性")
+
+    # ---- v3.1 股票交易推荐 ----
+    stock_recommendations = _compute_stock_recommendations(stock_map)
 
     # ---- 来源统计 ----
     source_stats: dict[str, int] = {}
@@ -364,6 +476,7 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
         "daily_focus": daily_focus,
         "capital_flow": capital_flow,
         "watchlist": watchlist,
+        "stock_recommendations": stock_recommendations,  # v3.1
     }
 
 
@@ -414,6 +527,7 @@ def render_report(
         "daily_focus": agg["daily_focus"],
         "capital_flow": agg["capital_flow"],
         "watchlist": agg["watchlist"],
+        "stock_recommendations": agg["stock_recommendations"],  # v3.1
     }
 
     env = jinja2.Environment(

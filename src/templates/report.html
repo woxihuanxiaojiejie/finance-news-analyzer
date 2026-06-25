@@ -430,7 +430,82 @@ body {
 .watch-reason { font-size: 12px; color: #374151; margin-bottom: 8px; }
 .watch-meta { display: flex; gap: 8px; align-items: center; }
 
-@media (max-width: 640px) { .focus-grid { grid-template-columns: 1fr; } .watch-grid { grid-template-columns: 1fr; } .thermo-metrics { flex-direction: column; } .flow-item { flex-wrap: wrap; } }
+@media (max-width: 640px) { .focus-grid { grid-template-columns: 1fr; } .watch-grid { grid-template-columns: 1fr; } .thermo-metrics { flex-direction: column; } .flow-item { flex-wrap: wrap; } .reco-grid { grid-template-columns: 1fr; } }
+
+/* ==================== v3.1 Stock Recommendations ==================== */
+.reco-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+.reco-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+.reco-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-color: #93c5fd; }
+.reco-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+}
+.reco-card.buy::before       { background: #16a34a; }
+.reco-card.accumulate::before { background: #22c55e; }
+.reco-card.hold::before      { background: #94a3b8; }
+.reco-card.reduce::before    { background: #f59e0b; }
+.reco-card.sell::before      { background: #dc2626; }
+
+.reco-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.reco-stock-info { flex: 1; }
+.reco-stock-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
+.reco-stock-code { font-family: "SF Mono", "Consolas", monospace; font-size: 12px; color: #6b7280; margin-left: 8px; }
+
+/* Recommendation Badge */
+.reco-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+.reco-badge.buy        { background: #dcfce7; color: #16a34a; }
+.reco-badge.accumulate { background: #f0fdf4; color: #15803d; }
+.reco-badge.hold       { background: #f1f5f9; color: #64748b; }
+.reco-badge.reduce     { background: #fff7ed; color: #ea580c; }
+.reco-badge.sell       { background: #fee2e2; color: #dc2626; }
+
+/* Confidence Bar */
+.reco-confidence { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.reco-confidence-label { font-size: 11px; color: #6b7280; white-space: nowrap; }
+.reco-confidence-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+.reco-confidence-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.reco-confidence-fill.high   { background: #16a34a; }
+.reco-confidence-fill.medium { background: #f59e0b; }
+.reco-confidence-fill.low    { background: #94a3b8; }
+.reco-confidence-value { font-size: 12px; font-weight: 700; min-width: 28px; text-align: right; }
+
+/* Signal & Sentiment */
+.reco-signal-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; font-size: 12px; }
+.reco-signal-value { font-weight: 700; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.reco-signal-value.positive { background: #dcfce7; color: #16a34a; }
+.reco-signal-value.negative { background: #fee2e2; color: #dc2626; }
+.reco-signal-value.neutral  { background: #f1f5f9; color: #64748b; }
+
+.reco-key-reason { font-size: 12px; color: #374151; background: #f8fafc; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.reco-key-reason::before { content: '💡 '; font-size: 11px; }
+
+.reco-meta-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.reco-count { font-size: 11px; color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: 10px; }
+
+/* News List */
+.reco-news-list { font-size: 11px; color: #9ca3af; list-style: none; padding: 0; margin: 0; }
+.reco-news-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; padding: 1px 0; }
+.reco-news-list li::before { content: '• '; color: #d1d5db; }
+
+/* Sentiment Mini Bar */
+.reco-sentiment-mini { display: flex; height: 4px; border-radius: 2px; overflow: hidden; margin-bottom: 8px; background: #f1f5f9; }
+.reco-sentiment-mini .seg-positive { background: #16a34a; }
+.reco-sentiment-mini .seg-neutral  { background: #94a3b8; }
+.reco-sentiment-mini .seg-negative { background: #dc2626; }
 </style>
 </head>
 <body>
@@ -942,6 +1017,119 @@ body {
         {% endfor %}
         </tbody>
     </table>
+</div>
+{% endif %}
+
+<!-- ==================== 股票交易推荐 (v3.1) ==================== -->
+{% if stock_recommendations %}
+<div class="section">
+    <h2>📈 股票交易推荐 <span class="tag" style="background:#ecfdf5;color:#059669;">{{ stock_recommendations|length }} 只</span></h2>
+    <div style="font-size:12px;color:#9ca3af;margin:-12px 0 16px;">
+        基于 AI 多空分析综合评分，按信号强弱排序。仅供参考，不构成投资建议。
+    </div>
+    <div class="reco-grid">
+    {% for rec in stock_recommendations %}
+        {% set rec_css = 'buy' if rec.recommendation == '买入'
+            else 'accumulate' if rec.recommendation == '增持'
+            else 'hold' if rec.recommendation == '观望'
+            else 'reduce' if rec.recommendation == '减持'
+            else 'sell' %}
+        {% set conf_class = 'high' if rec.confidence >= 7
+            else 'medium' if rec.confidence >= 4
+            else 'low' %}
+        {% set signal_class = 'positive' if rec.avg_signal > 0
+            else 'negative' if rec.avg_signal < 0
+            else 'neutral' %}
+        {% set rec_emoji = '🟢' if rec.recommendation == '买入'
+            else '🟩' if rec.recommendation == '增持'
+            else '⬜' if rec.recommendation == '观望'
+            else '🟧' if rec.recommendation == '减持'
+            else '🔴' %}
+        <div class="reco-card {{ rec_css }}">
+            <div class="reco-header">
+                <div class="reco-stock-info">
+                    <span class="reco-stock-name">{{ rec.name }}</span>
+                    {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                </div>
+                <span class="reco-badge {{ rec_css }}">{{ rec_emoji }} {{ rec.recommendation }}</span>
+            </div>
+
+            <!-- Confidence Bar -->
+            <div class="reco-confidence">
+                <span class="reco-confidence-label">信号强度</span>
+                <div class="reco-confidence-track">
+                    <div class="reco-confidence-fill {{ conf_class }}" style="width: {{ rec.confidence * 10 }}%;"></div>
+                </div>
+                <span class="reco-confidence-value" style="color: {% if rec.confidence >= 7 %}#16a34a{% elif rec.confidence >= 4 %}#f59e0b{% else %}#94a3b8{% endif %};">
+                    {{ rec.confidence }}/10
+                </span>
+            </div>
+
+            <!-- Sentiment Mini Bar -->
+            {% set total_s = rec.positive_count + rec.neutral_count + rec.negative_count %}
+            {% if total_s > 0 %}
+            <div class="reco-sentiment-mini">
+                {% if rec.positive_count > 0 %}
+                <div class="seg-positive" style="width: {{ (rec.positive_count / total_s * 100)|round(1) }}%;"></div>
+                {% endif %}
+                {% if rec.neutral_count > 0 %}
+                <div class="seg-neutral" style="width: {{ (rec.neutral_count / total_s * 100)|round(1) }}%;"></div>
+                {% endif %}
+                {% if rec.negative_count > 0 %}
+                <div class="seg-negative" style="width: {{ (rec.negative_count / total_s * 100)|round(1) }}%;"></div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Signal Row -->
+            <div class="reco-signal-row">
+                <span>综合信号:</span>
+                <span class="reco-signal-value {{ signal_class }}">
+                    {% if rec.avg_signal > 0 %}+{% endif %}{{ rec.avg_signal }}
+                </span>
+                <span class="reco-count">📰 {{ rec.count }} 次提及</span>
+                <span class="sentiment-{{ 'positive' if rec.sentiment_label == '利好' else 'negative' if rec.sentiment_label == '利空' else 'neutral' }}">
+                    {{ rec.sentiment_label }}
+                </span>
+            </div>
+
+            <!-- Key Reason -->
+            {% if rec.key_reason %}
+            <div class="reco-key-reason">{{ rec.key_reason }}</div>
+            {% endif %}
+
+            <!-- Meta Tags -->
+            <div class="reco-meta-row">
+                {% if rec.risk_level == '高' %}
+                <span class="risk-high">高风险</span>
+                {% elif rec.risk_level == '中' %}
+                <span class="risk-medium">中风险</span>
+                {% else %}
+                <span class="risk-low">低风险</span>
+                {% endif %}
+                {% if rec.trend == '短期' %}
+                <span class="trend-chip short">短期</span>
+                {% elif rec.trend == '中期' %}
+                <span class="trend-chip mid">中期</span>
+                {% else %}
+                <span class="trend-chip long">长期</span>
+                {% endif %}
+                <span style="font-size:11px;color:#6b7280;">
+                    一致性 {{ (rec.consensus * 100)|int }}%
+                </span>
+            </div>
+
+            <!-- Related News -->
+            {% if rec.news_titles %}
+            <ul class="reco-news-list">
+                {% for title in rec.news_titles[:3] %}
+                <li>{{ title }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    {% endfor %}
+    </div>
 </div>
 {% endif %}
 
