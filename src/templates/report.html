@@ -136,17 +136,37 @@ body {
     border-radius: 10px;
 }
 
-.news-item .stock-tag {
-    display: inline-block;
-    background: #ecfdf5; color: #059669;
-    font-size: 11px; padding: 2px 8px;
-    border-radius: 10px;
-    font-family: "SF Mono", "Consolas", monospace;
+/* -- News Body (展开详情) -- */
+.news-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    padding: 0 16px;
 }
-
-.news-item .no-analysis {
-    font-size: 12px; color: #9ca3af; font-style: italic; margin-top: 8px;
+.news-item.expanded .news-body {
+    max-height: none !important;
+    overflow: visible;
+    padding-top: 12px;
+    padding-bottom: 8px;
 }
+.news-item .analysis > div {
+    margin-bottom: 6px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+.news-collapsed-hint {
+    font-size: 12px;
+    color: #6b7280;
+    cursor: pointer;
+    text-align: center;
+    padding: 8px 16px;
+    margin-top: -2px;
+    transition: background 0.15s;
+    border-top: 1px solid #f1f5f9;
+}
+.news-collapsed-hint:hover { background: #f8fafc; }
+.news-item.expanded .news-collapsed-hint { display: none; }
 
 /* -- Sentiment Panel -- */
 .sentiment-panel {
@@ -197,6 +217,33 @@ body {
 .impact-table tr:hover td { background: #f8fafc; }
 .impact-score-cell { text-align: center; font-weight: 700; }
 
+/* Formula tooltip */
+.formula-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: none; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 2px 10px; font-size: 11px; color: #6b7280; cursor: pointer;
+    transition: all 0.15s;
+}
+.formula-btn:hover { background: #f1f5f9; color: #2563eb; border-color: #93c5fd; }
+.formula-popup {
+    display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+    z-index: 1000; max-width: 500px; width: 90%;
+}
+.formula-popup.show { display: block; }
+.formula-popup h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #1a1a2e; }
+.formula-popup .formula-box {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 16px; margin: 12px 0; font-family: "SF Mono", "Consolas", monospace;
+    font-size: 13px; line-height: 1.8; color: #374151;
+}
+.formula-popup .formula-note { font-size: 12px; color: #6b7280; line-height: 1.6; }
+.formula-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.3); z-index: 999;
+}
+.formula-overlay.show { display: block; }
+
 /* -- Rotation Signals -- */
 .rotation-list { list-style: none; }
 .rotation-list li {
@@ -209,77 +256,6 @@ body {
 .rotation-list li .rotation-text { font-size: 13px; color: #92400e; font-weight: 500; }
 .rotation-list li .rotation-title { font-size: 12px; color: #b45309; margin-top: 4px; }
 
-/* -- Stock Table -- */
-.stock-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.stock-table th {
-    text-align: left; padding: 8px 12px; background: #f8fafc;
-    font-weight: 600; color: #6b7280; border-bottom: 2px solid #e2e8f0;
-}
-.stock-table td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; }
-.stock-table .stock-code { font-family: "SF Mono", "Consolas", monospace; font-size: 12px; color: #6b7280; }
-
-/* Overview & source stats */
-.overview-list { list-style: none; }
-.overview-list li {
-    padding: 8px 0;
-    border-bottom: 1px solid #f3f4f6;
-    display: flex; align-items: center; gap: 10px;
-}
-.overview-list li:last-child { border-bottom: none; }
-
-.source-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 12px;
-}
-.source-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 12px 16px;
-    text-align: center;
-}
-.source-card .name { font-weight: 600; font-size: 13px; }
-.source-card .count { font-size: 20px; font-weight: 700; color: #2563eb; margin: 4px 0; }
-
-/* Industry & Company lists */
-.cluster-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
-}
-.cluster-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 12px 16px;
-}
-.cluster-card .cluster-name {
-    font-weight: 700; font-size: 13px;
-    color: #1a1a2e; margin-bottom: 6px;
-}
-.cluster-card .cluster-items {
-    font-size: 12px; color: #6b7280;
-}
-.cluster-card .cluster-count {
-    font-size: 11px; color: #2563eb; margin-top: 4px;
-}
-
-/* Errors */
-.error-list { list-style: none; }
-.error-list li {
-    padding: 6px 0;
-    color: #dc2626;
-    font-size: 13px;
-}
-.no-error { color: #059669; font-weight: 600; }
-
-/* Empty state */
-.empty-state {
-    text-align: center; padding: 40px 20px;
-    color: #9ca3af; font-size: 14px;
-}
-
 /* Trend chips */
 .trend-chips { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 .trend-chip {
@@ -289,150 +265,125 @@ body {
 .trend-chip.mid { background: #dbeafe; color: #2563eb; }
 .trend-chip.long { background: #ede9fe; color: #7c3aed; }
 
-/* BB insight cards */
+/* BB insight cards - categorized */
+.bb-category { margin-bottom: 20px; }
+.bb-category-title {
+    font-size: 14px; font-weight: 700; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+}
+.bb-category-title .count {
+    font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 10px;
+}
 .bb-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 10px;
+    gap: 14px;
 }
 .bb-card {
-    background: #f8fafc; border: 1px solid #e2e8f0;
-    border-radius: 6px; padding: 12px 16px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 18px;
+    border-left: 4px solid #94a3b8;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    position: relative;
+    overflow: hidden;
 }
-.bb-card .bb-title { font-size: 13px; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; }
-.bb-card .bb-text { font-size: 12px; color: #374151; }
-.bb-card .bb-meta { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
-
-/* -- Filter Bar -- */
-.news-filter-bar {
-    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    padding: 12px 0; margin-bottom: 16px;
-    border-bottom: 1px solid #e2e8f0;
+.bb-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
 }
-.news-filter-bar .filter-group {
-    display: flex; gap: 4px; align-items: center;
+.bb-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.09);
 }
-.news-filter-bar .filter-group .filter-label {
-    font-size: 11px; color: #6b7280; margin-right: 2px; white-space: nowrap;
+.bb-card.bullish { border-left-color: #16a34a; }
+.bb-card.bullish::before { background: linear-gradient(90deg, #16a34a, #4ade80); }
+.bb-card.bearish { border-left-color: #dc2626; }
+.bb-card.bearish::before { background: linear-gradient(90deg, #dc2626, #f87171); }
+.bb-card.neutral { border-left-color: #94a3b8; }
+.bb-card.neutral::before { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+.bb-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 8px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
-.news-filter-bar input[type="text"] {
-    border: 1px solid #e2e8f0; border-radius: 6px;
-    padding: 5px 10px; font-size: 12px; width: 200px;
-    outline: none; transition: border-color 0.2s;
+.bb-text {
+    font-size: 12.5px;
+    color: #374151;
+    line-height: 1.65;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
-.news-filter-bar input[type="text"]:focus { border-color: #2563eb; }
-.filter-btn {
-    border: 1px solid #e2e8f0; background: #f8fafc;
-    color: #6b7280; font-size: 11px; padding: 3px 10px;
-    border-radius: 12px; cursor: pointer; transition: all 0.15s;
-    white-space: nowrap; user-select: none;
-}
-.filter-btn:hover { background: #e2e8f0; }
-.filter-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
-.filter-count { font-size: 11px; color: #6b7280; margin-left: auto; white-space: nowrap; }
-
-/* -- Search highlight -- */
-.search-highlight { background: #fef08a; padding: 0 1px; border-radius: 2px; }
-
-/* -- Collapse / Expand -- */
-.news-item { cursor: pointer; }
-.news-item .news-toggle {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 20px; height: 20px; border-radius: 50%;
-    background: #f1f5f9; color: #64748b; font-size: 10px;
-    transition: transform 0.3s ease; flex-shrink: 0; margin-left: 4px;
-}
-.news-item.expanded .news-toggle { transform: rotate(180deg); background: #dbeafe; color: #2563eb; }
-.news-item .news-body {
-    max-height: 0; overflow: hidden;
-    transition: max-height 0.3s ease;
-}
-.news-item.expanded .news-body { max-height: 800px; }
-.news-item .news-collapsed-hint {
-    font-size: 11px; color: #9ca3af; margin-top: 4px;
-}
-.news-item.expanded .news-collapsed-hint { display: none; }
-.news-item .news-tag-row {
-    display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-top: 6px;
+.bb-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
-/* Footer */
-.footer {
-    text-align: center;
-    font-size: 12px;
-    color: #9ca3af;
-    padding: 20px;
-}
-
-@media (max-width: 640px) {
-    .container { padding: 12px; }
-    .header { padding: 20px; }
-    .header h1 { font-size: 20px; }
-    .section { padding: 16px; }
-    .stats-row { gap: 8px; }
-    .stat-card { min-width: 80px; padding: 8px 12px; }
-    .stat-card .num { font-size: 18px; }
-    .sentiment-panel { grid-template-columns: 1fr; }
-    .news-item .news-header { flex-direction: column; }
-    .cluster-list { grid-template-columns: 1fr; }
-    .bb-grid { grid-template-columns: 1fr; }
-    .impact-table { font-size: 12px; }
-    .news-filter-bar { flex-direction: column; align-items: stretch; }
-    .news-filter-bar input[type="text"] { width: 100%; }
-    .news-filter-bar .filter-group { flex-wrap: wrap; }
-    .filter-count { margin-left: 0; }
-    .news-item .news-header { flex-wrap: wrap; }
-}
-/* ==================== v3.0 ==================== */
-.thermometer-section {
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-    border-radius: 8px;
-    padding: 24px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-.thermo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.thermo-header h2 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin: 0; }
-.thermo-title-right { display: flex; align-items: center; gap: 12px; }
-.thermo-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; }
-.thermo-value { display: inline-flex; align-items: center; gap: 4px; font-size: 28px; font-weight: 800; }
-.thermo-value .deg { font-size: 16px; font-weight: 400; color: #9ca3af; }
-.thermo-bar-track { width: 100%; height: 16px; background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444); border-radius: 999px; position: relative; margin-top: 8px; }
-.thermo-bar-indicator { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; background: #fff; border: 2px solid #1a1a2e; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: left 0.6s ease; z-index: 2; }
-.thermo-metrics { display: flex; gap: 16px; margin-top: 36px; flex-wrap: wrap; }
-.thermo-metric { flex: 1; min-width: 140px; text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px; }
-.thermo-metric .val { font-size: 18px; font-weight: 700; }
-.thermo-metric .lbl { font-size: 11px; color: #6b7280; margin-top: 2px; }
-
-.focus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.focus-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; transition: border-color 0.2s; }
-.focus-card:hover { border-color: #93c5fd; }
-.focus-rank { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-.focus-rank.r1 { color: #f59e0b; }
-.focus-rank.r2 { color: #9ca3af; }
-.focus-rank.r3 { color: #d97706; }
-.focus-title { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.focus-impact { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
-.focus-score { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #2563eb; }
-
-.flow-list { list-style: none; }
-.flow-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
-.flow-item:last-child { border-bottom: none; }
-.flow-from { font-size: 13px; font-weight: 600; color: #dc2626; min-width: 80px; text-align: right; }
-.flow-arrow { flex: 1; display: flex; align-items: center; gap: 6px; }
-.flow-line { flex: 1; height: 4px; border-radius: 2px; }
-.flow-to { font-size: 13px; font-weight: 600; color: #16a34a; min-width: 80px; }
-
+/* Watchlist with news links */
 .watch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 .watch-card { background: #eff6ff; border-radius: 8px; padding: 16px; border-left: 4px solid #2563eb; }
 .watch-name { font-size: 15px; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
 .watch-type { font-size: 11px; color: #2563eb; font-weight: 600; margin-bottom: 4px; }
 .watch-reason { font-size: 12px; color: #374151; margin-bottom: 8px; }
-.watch-meta { display: flex; gap: 8px; align-items: center; }
+.watch-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.watch-news-links { font-size: 11px; color: #6b7280; }
+.watch-news-links a { color: #2563eb; text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px; }
+.watch-news-links a:hover { text-decoration: underline; }
 
-@media (max-width: 640px) { .focus-grid { grid-template-columns: 1fr; } .watch-grid { grid-template-columns: 1fr; } .thermo-metrics { flex-direction: column; } .flow-item { flex-wrap: wrap; } .reco-grid { grid-template-columns: 1fr; } }
+/* Stock analysis - categorized */
+.stock-category { margin-bottom: 24px; }
+.stock-category-title {
+    font-size: 14px; font-weight: 700; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+}
+.stock-category-title .count-badge {
+    font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 10px;
+}
+.stock-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stock-table th {
+    text-align: left; padding: 8px 12px; background: #f8fafc;
+    font-weight: 600; color: #6b7280; border-bottom: 2px solid #e2e8f0;
+}
+.stock-table td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; }
+.stock-table tr:hover td { background: #f8fafc; }
+.stock-table .stock-code { font-family: "SF Mono", "Consolas", monospace; font-size: 12px; color: #6b7280; }
+.stock-table .news-link { color: #2563eb; text-decoration: none; font-size: 11px; }
+.stock-table .news-link:hover { text-decoration: underline; }
 
 /* ==================== v3.1 Stock Recommendations ==================== */
+/* Tab navigation for recommendations */
+.reco-tabs {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.reco-tab {
+    padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; border: 1px solid #e2e8f0;
+    background: #f8fafc; color: #6b7280;
+}
+.reco-tab:hover { background: #e2e8f0; }
+.reco-tab.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.reco-tab-content { display: none; }
+.reco-tab-content.active { display: block; }
+.bb-tab-content { display: none; }
+.bb-tab-content.active { display: block; }
+.stock-tab-content { display: none; }
+.stock-tab-content.active { display: block; }
+
 .reco-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -464,6 +415,8 @@ body {
 .reco-stock-info { flex: 1; }
 .reco-stock-name { font-size: 16px; font-weight: 700; color: #1a1a2e; }
 .reco-stock-code { font-family: "SF Mono", "Consolas", monospace; font-size: 12px; color: #6b7280; margin-left: 8px; }
+.reco-stock-link { color: #2563eb; text-decoration: none; }
+.reco-stock-link:hover { text-decoration: underline; }
 
 /* Recommendation Badge */
 .reco-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
@@ -475,7 +428,7 @@ body {
 
 /* Confidence Bar */
 .reco-confidence { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.reco-confidence-label { font-size: 11px; color: #6b7280; white-space: nowrap; }
+.reco-confidence-label { font-size: 11px; color: #6b7280; white-space: nowrap; cursor: help; }
 .reco-confidence-track { flex: 1; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
 .reco-confidence-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
 .reco-confidence-fill.high   { background: #16a34a; }
@@ -485,20 +438,22 @@ body {
 
 /* Signal & Sentiment */
 .reco-signal-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; font-size: 12px; }
-.reco-signal-value { font-weight: 700; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.reco-signal-value { font-weight: 700; padding: 2px 8px; border-radius: 10px; font-size: 11px; cursor: help; }
 .reco-signal-value.positive { background: #dcfce7; color: #16a34a; }
 .reco-signal-value.negative { background: #fee2e2; color: #dc2626; }
 .reco-signal-value.neutral  { background: #f1f5f9; color: #64748b; }
 
-.reco-key-reason { font-size: 12px; color: #374151; background: #f8fafc; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.reco-key-reason { font-size: 12px; color: #374151; background: #f8fafc; border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; line-height: 1.5; }
 .reco-key-reason::before { content: '💡 '; font-size: 11px; }
 
 .reco-meta-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
 .reco-count { font-size: 11px; color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: 10px; }
 
-/* News List */
-.reco-news-list { font-size: 11px; color: #9ca3af; list-style: none; padding: 0; margin: 0; }
-.reco-news-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; padding: 1px 0; }
+/* News List with links */
+.reco-news-list { font-size: 11px; color: #6b7280; list-style: none; padding: 0; margin: 0; }
+.reco-news-list li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; padding: 2px 0; }
+.reco-news-list li a { color: #2563eb; text-decoration: none; }
+.reco-news-list li a:hover { text-decoration: underline; }
 .reco-news-list li::before { content: '• '; color: #d1d5db; }
 
 /* Sentiment Mini Bar */
@@ -506,6 +461,128 @@ body {
 .reco-sentiment-mini .seg-positive { background: #16a34a; }
 .reco-sentiment-mini .seg-neutral  { background: #94a3b8; }
 .reco-sentiment-mini .seg-negative { background: #dc2626; }
+
+/* Tooltip */
+.tooltip {
+    position: relative; display: inline-block;
+}
+.tooltip .tooltiptext {
+    visibility: hidden; width: 280px; background: #1a1a2e; color: #fff;
+    text-align: left; border-radius: 6px; padding: 10px 14px;
+    position: absolute; z-index: 100; bottom: 125%; left: 50%; margin-left: -140px;
+    opacity: 0; transition: opacity 0.2s; font-size: 11px; line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.tooltip .tooltiptext::after {
+    content: ''; position: absolute; top: 100%; left: 50%;
+    margin-left: -5px; border-width: 5px; border-style: solid;
+    border-color: #1a1a2e transparent transparent transparent;
+}
+.tooltip:hover .tooltiptext { visibility: visible; opacity: 1; }
+
+/* Industry/Company impact - categorized */
+.ic-category { margin-bottom: 24px; }
+.ic-top-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-bottom: 12px;
+}
+.ic-card {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 16px;
+}
+.ic-card .ic-name { font-weight: 700; font-size: 14px; color: #1a1a2e; margin-bottom: 6px; }
+.ic-card .ic-name a { color: #2563eb; text-decoration: none; }
+.ic-card .ic-name a:hover { text-decoration: underline; }
+.ic-card .ic-news-count { font-size: 11px; color: #2563eb; margin-bottom: 6px; }
+.ic-card .ic-news-list { font-size: 11px; color: #6b7280; }
+.ic-card .ic-news-list a { color: #2563eb; text-decoration: none; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ic-card .ic-news-list a:hover { text-decoration: underline; }
+.ic-other-toggle { font-size: 12px; color: #2563eb; cursor: pointer; margin-top: 8px; display: inline-block; }
+.ic-other-toggle:hover { text-decoration: underline; }
+.ic-other-list { display: none; margin-top: 8px; }
+.ic-other-list.show { display: block; }
+
+/* Flow list */
+.flow-list { list-style: none; }
+.flow-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+.flow-item:last-child { border-bottom: none; }
+.flow-from { font-size: 13px; font-weight: 600; color: #dc2626; min-width: 80px; text-align: right; }
+.flow-arrow { flex: 1; display: flex; align-items: center; gap: 6px; }
+.flow-line { flex: 1; height: 4px; border-radius: 2px; }
+.flow-to { font-size: 13px; font-weight: 600; color: #16a34a; min-width: 80px; }
+
+/* ==================== v3.0 Thermometer ==================== */
+.thermometer-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-radius: 8px; padding: 24px; margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.thermo-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.thermo-header h2 { font-size: 16px; font-weight: 700; color: #1a1a2e; margin: 0; }
+.thermo-title-right { display: flex; align-items: center; gap: 12px; }
+.thermo-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 20px; font-size: 14px; font-weight: 700; }
+.thermo-value { display: inline-flex; align-items: center; gap: 4px; font-size: 28px; font-weight: 800; }
+.thermo-value .deg { font-size: 16px; font-weight: 400; color: #9ca3af; }
+.thermo-bar-track { width: 100%; height: 16px; background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444); border-radius: 999px; position: relative; margin-top: 8px; }
+.thermo-bar-indicator { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; background: #fff; border: 2px solid #1a1a2e; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: left 0.6s ease; z-index: 2; }
+.thermo-metrics { display: flex; gap: 16px; margin-top: 36px; flex-wrap: wrap; }
+.thermo-metric { flex: 1; min-width: 140px; text-align: center; padding: 8px; background: #f8fafc; border-radius: 6px; }
+.thermo-metric .val { font-size: 18px; font-weight: 700; }
+.thermo-metric .lbl { font-size: 11px; color: #6b7280; margin-top: 2px; }
+
+.focus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.focus-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; transition: border-color 0.2s; }
+.focus-card:hover { border-color: #93c5fd; }
+.focus-rank { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.focus-rank.r1 { color: #f59e0b; }
+.focus-rank.r2 { color: #9ca3af; }
+.focus-rank.r3 { color: #d97706; }
+.focus-title { font-size: 14px; font-weight: 600; color: #1a1a2e; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.focus-impact { font-size: 12px; color: #6b7280; margin-bottom: 8px; }
+.focus-score { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700; color: #2563eb; }
+
+/* Filter Bar */
+.news-filter-bar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+    padding: 12px 0; margin-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+.news-filter-bar .filter-group {
+    display: flex; gap: 4px; align-items: center;
+}
+.news-filter-bar .filter-group .filter-label {
+    font-size: 11px; color: #6b7280; margin-right: 2px; white-space: nowrap;
+}
+.news-filter-bar input[type="text"] {
+    border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 5px 10px; font-size: 12px; width: 200px;
+    outline: none; transition: border-color 0.2s;
+}
+.news-filter-bar input[type="text"]:focus { border-color: #2563eb; }
+.filter-btn {
+    border: 1px solid #e2e8f0; background: #f8fafc;
+    color: #6b7280; font-size: 11px; padding: 3px 10px;
+    border-radius: 12px; cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; user-select: none;
+}
+.filter-btn:hover { background: #e2e8f0; }
+.filter-btn.active { background: #2563eb; color: #fff; border-color: #2563eb; }
+.filter-count { font-size: 11px; color: #6b7280; margin-left: auto; white-space: nowrap; }
+
+@media (max-width: 640px) {
+    .container { padding: 12px; }
+    .header { padding: 20px; }
+    .header h1 { font-size: 20px; }
+    .section { padding: 16px; }
+    .stats-row { gap: 8px; }
+    .stat-card { min-width: 80px; padding: 8px 12px; }
+    .stat-card .num { font-size: 18px; }
+    .sentiment-panel { grid-template-columns: 1fr; }
+    .news-item .news-header { flex-direction: column; }
+    .focus-grid { grid-template-columns: 1fr; }
+    .watch-grid { grid-template-columns: 1fr; }
+    .thermo-metrics { flex-direction: column; }
+    .reco-grid { grid-template-columns: 1fr; }
+    .ic-top-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
@@ -575,15 +652,12 @@ body {
             </div>
             <div class="focus-title">{{ event.title }}</div>
             <div class="focus-impact">{{ event.impact_summary }}</div>
-            <div class="focus-score">
-                影响力评分: {{ event.score }}/10
-            </div>
+            <div class="focus-score">影响力评分: {{ event.score }}/10</div>
         </div>
     {% endfor %}
     </div>
 </div>
 {% endif %}
-
 
     <div class="stats-row">
         <div class="stat-card">
@@ -644,10 +718,10 @@ body {
     {% endif %}
 </div>
 
-<!-- Sentiment Analysis (NEW) -->
+<!-- Sentiment Analysis -->
 {% if sentiment_overview and sentiment_overview.total > 0 %}
 <div class="section">
-    <h2>市场情绪分析 <span class="tag" style="background:#f0fdf4;color:#16a34a;">NEW</span></h2>
+    <h2>市场情绪分析</h2>
     <div class="sentiment-panel">
         <div class="sentiment-overview">
             <div class="sentiment-bar-row">
@@ -678,21 +752,17 @@ body {
             {% set neu_seg = sentiment_overview.neutral_pct * circ / 100 %}
             {% set neg_seg = sentiment_overview.negative_pct * circ / 100 %}
             <svg viewBox="0 0 200 200">
-                <!-- 灰色底环 -->
                 <circle cx="100" cy="100" r="80" fill="none" stroke="#f1f5f9" stroke-width="18"/>
-                <!-- 利好段(绿) -->
                 {% if sentiment_overview.positive_pct > 0 %}
                 <circle cx="100" cy="100" r="80" fill="none" stroke="#16a34a" stroke-width="18"
                     stroke-dasharray="{{ pos_seg }} {{ circ - pos_seg }}" stroke-dashoffset="0"
                     transform="rotate(-90 100 100)" stroke-linecap="butt"/>
                 {% endif %}
-                <!-- 中性段(灰) -->
                 {% if sentiment_overview.neutral_pct > 0 %}
                 <circle cx="100" cy="100" r="80" fill="none" stroke="#94a3b8" stroke-width="18"
                     stroke-dasharray="{{ neu_seg }} {{ circ - neu_seg }}" stroke-dashoffset="{{ -pos_seg }}"
                     transform="rotate(-90 100 100)" stroke-linecap="butt"/>
                 {% endif %}
-                <!-- 利空段(红) -->
                 {% if sentiment_overview.negative_pct > 0 %}
                 <circle cx="100" cy="100" r="80" fill="none" stroke="#dc2626" stroke-width="18"
                     stroke-dasharray="{{ neg_seg }} {{ circ - neg_seg }}" stroke-dashoffset="{{ -(pos_seg + neu_seg) }}"
@@ -745,13 +815,17 @@ body {
 <!-- ==================== 影响力 TOP 榜 (v3.0 增强) ==================== -->
 {% if impact_top %}
 <div class="section">
-    <h2>🏆 影响力 TOP 榜 <span class="tag" style="background:#eff6ff;color:#2563eb;">TOP {{ impact_top|length }}</span></h2>
+    <h2>
+        🏆 影响力 TOP 榜
+        <span class="tag" style="background:#eff6ff;color:#2563eb;">TOP {{ impact_top|length }}</span>
+        <button class="formula-btn" onclick="showFormula()">📊 查看计算公式</button>
+    </h2>
     <table class="impact-table">
         <thead>
             <tr>
                 <th style="width:40px;">#</th>
                 <th>新闻标题</th>
-                <th style="width:70px;">综合影响力</th>
+                <th style="width:70px;">最终影响力</th>
                 <th style="width:60px;">基础评分</th>
                 <th style="width:60px;">可信度</th>
                 <th style="width:60px;">时效性</th>
@@ -764,8 +838,15 @@ body {
             <tr>
                 <td class="impact-score-cell" style="color:#9ca3af;">{{ loop.index }}</td>
                 <td>
+                    {% if item.url %}
+                    <a href="{{ item.url }}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit;" onmouseover="this.style.color='#2563eb';" onmouseout="this.style.color='inherit';">
+                        <div style="font-weight:600;">{{ item.title }} <span style="font-size:10px; color:#9ca3af;">↗</span></div>
+                        <div style="font-size:12px;color:#6b7280;">{{ item.summary }}</div>
+                    </a>
+                    {% else %}
                     <div style="font-weight:600;">{{ item.title }}</div>
                     <div style="font-size:12px;color:#6b7280;">{{ item.summary }}</div>
+                    {% endif %}
                 </td>
                 <td class="impact-score-cell" style="color:{% if item.final_impact_score >= 7 %}#dc2626{% elif item.final_impact_score >= 4 %}#d97706{% else %}#059669{% endif %};">
                     {{ item.final_impact_score }}
@@ -790,73 +871,151 @@ body {
 </div>
 {% endif %}
 
-<!-- ==================== 资金流向与板块轮动 (v3.0) ==================== -->
-{% if capital_flow or rotation_signals %}
+<!-- Formula popup -->
+<div class="formula-overlay" id="formulaOverlay" onclick="hideFormula()"></div>
+<div class="formula-popup" id="formulaPopup">
+    <h3>📊 影响力评分计算公式</h3>
+    <div class="formula-box">
+        最终影响力 = 基础评分 × (可信度评分 / 100) × 时效性评分
+    </div>
+    <div class="formula-note">
+        <p><strong>基础评分</strong>（0-10）：AI 根据新闻内容的情绪烈度、板块影响广度、连锁反应潜力综合打分。</p>
+        <p><strong>可信度评分</strong>（0-100）：根据新闻来源计算。官方/监管=100，权威财经媒体=85，行业媒体=70，其他=50。</p>
+        <p><strong>时效性评分</strong>（0-1）：e^(-t/24)，t 为发布时间距现在的小时数。越新越接近 1。</p>
+        <p style="margin-top:8px; color:#2563eb;">💡 最终影响力范围约 0-10，分数越高表示该新闻对市场的影响潜力越大。</p>
+    </div>
+    <div style="text-align:right; margin-top: 16px;">
+        <button class="filter-btn active" onclick="hideFormula()">关闭</button>
+    </div>
+</div>
+
+<!-- ==================== 多空观点速览 (v3.3 Tab版) ==================== -->
+{% if bullish_bearish_bullish or bullish_bearish_bearish or bullish_bearish_neutral %}
 <div class="section">
-    <h2>🔄 资金流向与板块轮动</h2>
-    {% if capital_flow %}
-    <div class="flow-list">
-    {% for flow in capital_flow %}
-        <div class="flow-item">
-            {% if flow.from %}<span class="flow-from">{{ flow.from }}</span>{% endif %}
-            <div class="flow-arrow">
-                <div class="flow-line" style="background: {% if flow.strength <= 3 %}#93c5fd{% elif flow.strength <= 6 %}#3b82f6{% else %}#1d4ed8{% endif %};"></div>
-                <span style="font-size:13px;font-weight:700;color:#6b7280;">➡️</span>
-                <div class="flow-line" style="background: {% if flow.strength <= 3 %}#93c5fd{% elif flow.strength <= 6 %}#3b82f6{% else %}#1d4ed8{% endif %};"></div>
+    <h2>多空观点速览
+        <span class="tag" style="background:#f8fafc;color:#64748b;">{{ (bullish_bearish_bullish|length) + (bullish_bearish_bearish|length) + (bullish_bearish_neutral|length) }} 条</span>
+    </h2>
+
+    <!-- Tab navigation -->
+    <div class="reco-tabs" style="margin-bottom:16px;">
+        <div class="reco-tab active" onclick="showBbTab('all', this)">全部 ({{ (bullish_bearish_bullish|length) + (bullish_bearish_bearish|length) + (bullish_bearish_neutral|length) }})</div>
+        {% if bullish_bearish_bullish %}<div class="reco-tab" onclick="showBbTab('bullish', this)" style="border-left:3px solid #16a34a;">🟢 利好 ({{ bullish_bearish_bullish|length }})</div>{% endif %}
+        {% if bullish_bearish_bearish %}<div class="reco-tab" onclick="showBbTab('bearish', this)" style="border-left:3px solid #dc2626;">🔴 利空 ({{ bullish_bearish_bearish|length }})</div>{% endif %}
+        {% if bullish_bearish_neutral %}<div class="reco-tab" onclick="showBbTab('neutral', this)" style="border-left:3px solid #94a3b8;">⚪ 中性 ({{ bullish_bearish_neutral|length }})</div>{% endif %}
+    </div>
+
+    <!-- All tab -->
+    <div class="bb-tab-content active" id="bb-all">
+        {% if bullish_bearish_bullish %}
+        <div class="bb-sub-title" style="color:#16a34a;font-weight:600;margin:12px 0 8px;">🟢 利好观点 ({{ bullish_bearish_bullish|length }})</div>
+        <div class="bb-grid">
+        {% for bb in bullish_bearish_bullish %}
+            <div class="bb-card bullish">
+                <div class="bb-title">{{ bb.title }}</div>
+                <div class="bb-text">{{ bb.bullish_bearish }}</div>
+                <div class="bb-meta">
+                    <span class="sentiment-positive">利好</span>
+                    {% if bb.risk_level == '高' %}<span class="risk-high">{{ bb.risk_level }}风险</span>
+                    {% elif bb.risk_level == '中' %}<span class="risk-medium">{{ bb.risk_level }}风险</span>{% endif %}
+                </div>
             </div>
-            <span class="flow-to">{{ flow.to }}</span>
-            <span style="font-size:11px;color:#9ca3af;min-width:60px;text-align:right;">强度 {{ flow.strength }}/10</span>
+        {% endfor %}
         </div>
-    {% endfor %}
+        {% endif %}
+        {% if bullish_bearish_bearish %}
+        <div class="bb-sub-title" style="color:#dc2626;font-weight:600;margin:12px 0 8px;">🔴 利空观点 ({{ bullish_bearish_bearish|length }})</div>
+        <div class="bb-grid">
+        {% for bb in bullish_bearish_bearish %}
+            <div class="bb-card bearish">
+                <div class="bb-title">{{ bb.title }}</div>
+                <div class="bb-text">{{ bb.bullish_bearish }}</div>
+                <div class="bb-meta">
+                    <span class="sentiment-negative">利空</span>
+                    {% if bb.risk_level == '高' %}<span class="risk-high">{{ bb.risk_level }}风险</span>
+                    {% elif bb.risk_level == '中' %}<span class="risk-medium">{{ bb.risk_level }}风险</span>{% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+        {% endif %}
+        {% if bullish_bearish_neutral %}
+        <div class="bb-sub-title" style="color:#64748b;font-weight:600;margin:12px 0 8px;">⚪ 中性观点 ({{ bullish_bearish_neutral|length }})</div>
+        <div class="bb-grid">
+        {% for bb in bullish_bearish_neutral %}
+            <div class="bb-card neutral">
+                <div class="bb-title">{{ bb.title }}</div>
+                <div class="bb-text">{{ bb.bullish_bearish }}</div>
+                <div class="bb-meta">
+                    <span class="sentiment-neutral">中性</span>
+                    {% if bb.risk_level == '高' %}<span class="risk-high">{{ bb.risk_level }}风险</span>
+                    {% elif bb.risk_level == '中' %}<span class="risk-medium">{{ bb.risk_level }}风险</span>{% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bullish tab -->
+    {% if bullish_bearish_bullish %}
+    <div class="bb-tab-content" id="bb-bullish">
+        <div class="bb-grid">
+        {% for bb in bullish_bearish_bullish %}
+            <div class="bb-card bullish">
+                <div class="bb-title">{{ bb.title }}</div>
+                <div class="bb-text">{{ bb.bullish_bearish }}</div>
+                <div class="bb-meta">
+                    <span class="sentiment-positive">利好</span>
+                    {% if bb.risk_level == '高' %}<span class="risk-high">{{ bb.risk_level }}风险</span>
+                    {% elif bb.risk_level == '中' %}<span class="risk-medium">{{ bb.risk_level }}风险</span>{% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
     </div>
     {% endif %}
-    {% if rotation_signals %}
-    <h3 style="margin-top:16px;">详细轮动信号</h3>
-    <ul class="rotation-list">
-    {% for sig in rotation_signals %}
-        <li>
-            <div>
-                <span class="signal-icon">🔄</span>
-                <span class="rotation-text">{{ sig.rotation_detail }}</span>
+
+    <!-- Bearish tab -->
+    {% if bullish_bearish_bearish %}
+    <div class="bb-tab-content" id="bb-bearish">
+        <div class="bb-grid">
+        {% for bb in bullish_bearish_bearish %}
+            <div class="bb-card bearish">
+                <div class="bb-title">{{ bb.title }}</div>
+                <div class="bb-text">{{ bb.bullish_bearish }}</div>
+                <div class="bb-meta">
+                    <span class="sentiment-negative">利空</span>
+                    {% if bb.risk_level == '高' %}<span class="risk-high">{{ bb.risk_level }}风险</span>
+                    {% elif bb.risk_level == '中' %}<span class="risk-medium">{{ bb.risk_level }}风险</span>{% endif %}
+                </div>
             </div>
-            <div class="rotation-title">{{ sig.title }}</div>
-        </li>
-    {% endfor %}
-    </ul>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Neutral tab -->
+    {% if bullish_bearish_neutral %}
+    <div class="bb-tab-content" id="bb-neutral">
+        <div class="bb-grid">
+        {% for bb in bullish_bearish_neutral %}
+            <div class="bb-card neutral">
+                <div class="bb-title">{{ bb.title }}</div>
+                <div class="bb-text">{{ bb.bullish_bearish }}</div>
+                <div class="bb-meta">
+                    <span class="sentiment-neutral">中性</span>
+                    {% if bb.risk_level == '高' %}<span class="risk-high">{{ bb.risk_level }}风险</span>
+                    {% elif bb.risk_level == '中' %}<span class="risk-medium">{{ bb.risk_level }}风险</span>{% endif %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endif %}
 
-<!-- Bullish/Bearish Insights (NEW) -->
-{% if bullish_bearish_list %}
-<div class="section">
-    <h2>多空观点速览 <span class="tag" style="background:#f8fafc;color:#64748b;">{{ bullish_bearish_list|length }} 条</span></h2>
-    <div class="bb-grid">
-    {% for bb in bullish_bearish_list %}
-        <div class="bb-card">
-            <div class="bb-title">{{ bb.title }}</div>
-            <div class="bb-text">{{ bb.bullish_bearish }}</div>
-            <div class="bb-meta">
-                {% if bb.sentiment == '利好' %}
-                <span class="sentiment-positive">{{ bb.sentiment }}</span>
-                {% elif bb.sentiment == '利空' %}
-                <span class="sentiment-negative">{{ bb.sentiment }}</span>
-                {% else %}
-                <span class="sentiment-neutral">{{ bb.sentiment }}</span>
-                {% endif %}
-                {% if bb.risk_level == '高' %}
-                <span class="risk-high">{{ bb.risk_level }}风险</span>
-                {% elif bb.risk_level == '中' %}
-                <span class="risk-medium">{{ bb.risk_level }}风险</span>
-                {% endif %}
-            </div>
-        </div>
-    {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<!-- ==================== AI 投资观察名单 (v3.0) ==================== -->
+<!-- ==================== AI 投资观察名单 (v3.2 含新闻链接) ==================== -->
 {% if watchlist %}
 <div class="section">
     <h2>🔍 AI 投资观察名单</h2>
@@ -875,41 +1034,17 @@ body {
                 {% elif w.risk == '中' %}<span class="risk-medium">中风险</span>
                 {% else %}<span class="risk-low">低风险</span>{% endif %}
             </div>
+            {% if w.news_links %}
+            <div class="watch-news-links">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">相关新闻：</div>
+                {% for link in w.news_links %}
+                <a href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.title }}">{{ link.title }}</a>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     {% endfor %}
     </div>
-</div>
-{% endif %}
-
-<!-- Today's Overview -->
-{% if overview %}
-<div class="section">
-    <h2>今日概览</h2>
-    <ul class="overview-list">
-    {% for item in overview %}
-        <li>
-            {% if item.risk_level == "高" %}
-            <span class="risk-high">高</span>
-            {% elif item.risk_level == "中" %}
-            <span class="risk-medium">中</span>
-            {% else %}
-            <span class="risk-low">低</span>
-            {% endif %}
-            {% if item.sentiment == '利好' %}
-            <span class="sentiment-positive">利好</span>
-            {% elif item.sentiment == '利空' %}
-            <span class="sentiment-negative">利空</span>
-            {% elif item.sentiment %}
-            <span class="sentiment-neutral">中性</span>
-            {% endif %}
-            <strong>{{ item.title }}</strong>
-            <span style="color:#6b7280;font-size:13px;">&#x2014; {{ item.summary }}</span>
-            {% if item.impact_score > 0 %}
-            <span style="font-size:11px;color:#9ca3af;">[{{ item.impact_score }}/10]</span>
-            {% endif %}
-        </li>
-    {% endfor %}
-    </ul>
 </div>
 {% endif %}
 
@@ -979,197 +1114,395 @@ body {
 </div>
 {% endif %}
 
-<!-- Stock Analysis (NEW) -->
-{% if stock_map %}
+<!-- ==================== 关联股票分析 (v3.3 Tab版) ==================== -->
+{% if stock_bullish or stock_bearish or stock_neutral %}
 <div class="section">
-    <h2>关联股票分析 <span class="tag" style="background:#ecfdf5;color:#059669;">{{ stock_map|length }} 只</span></h2>
-    <table class="stock-table">
-        <thead>
-            <tr>
-                <th>股票</th>
-                <th>代码</th>
-                <th>出现次数</th>
-                <th>情绪倾向</th>
-                <th>相关新闻</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for code, info in stock_map.items() %}
-            <tr>
-                <td style="font-weight:600;">{{ info.name }}</td>
-                <td class="stock-code">{{ info.code or '--' }}</td>
-                <td style="text-align:center;">{{ info.count }}</td>
-                <td style="text-align:center;">
-                    {% if info.sentiment_label == '利好' %}
-                    <span class="sentiment-positive">{{ info.sentiment_label }}</span>
-                    {% elif info.sentiment_label == '利空' %}
-                    <span class="sentiment-negative">{{ info.sentiment_label }}</span>
-                    {% else %}
-                    <span class="sentiment-neutral">{{ info.sentiment_label }}</span>
-                    {% endif %}
-                </td>
-                <td style="font-size:12px;color:#6b7280;">
-                    {% for t in info.news_titles[:2] %}
-                    <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px;">&#x2022; {{ t }}</div>
-                    {% endfor %}
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <h2>关联股票分析
+        <span class="tag" style="background:#ecfdf5;color:#059669;">{{ (stock_bullish|length) + (stock_bearish|length) + (stock_neutral|length) }} 只</span>
+    </h2>
+
+    <!-- Tab navigation -->
+    <div class="reco-tabs" style="margin-bottom:16px;">
+        <div class="reco-tab active" onclick="showStockTab('all', this)">全部 ({{ (stock_bullish|length) + (stock_bearish|length) + (stock_neutral|length) }})</div>
+        {% if stock_bullish %}<div class="reco-tab" onclick="showStockTab('bullish', this)" style="border-left:3px solid #16a34a;">🟢 利好 ({{ stock_bullish|length }})</div>{% endif %}
+        {% if stock_bearish %}<div class="reco-tab" onclick="showStockTab('bearish', this)" style="border-left:3px solid #dc2626;">🔴 利空 ({{ stock_bearish|length }})</div>{% endif %}
+        {% if stock_neutral %}<div class="reco-tab" onclick="showStockTab('neutral', this)" style="border-left:3px solid #94a3b8;">⚪ 中性 ({{ stock_neutral|length }})</div>{% endif %}
+    </div>
+
+    <!-- All tab -->
+    <div class="stock-tab-content active" id="stock-all">
+        {% if stock_bullish %}
+        <div style="color:#16a34a;font-weight:600;margin:12px 0 8px;">🟢 利好导向 ({{ stock_bullish|length }} 只)</div>
+        <table class="stock-table">
+            <thead><tr><th>股票</th><th>代码</th><th>次数</th><th>情绪</th><th>相关新闻</th></tr></thead>
+            <tbody>{% for code, info in stock_bullish.items() %}<tr>
+                <td style="font-weight:600;">{% if info.code %}<a href="https://cn.bing.com/search?q={{ info.code }}" target="_blank" rel="noopener" style="color:#16a34a;text-decoration:none;">{{ info.name }}</a>{% else %}{{ info.name }}{% endif %}</td>
+                <td class="stock-code">{{ info.code or '--' }}</td><td style="text-align:center;">{{ info.count }}</td><td style="text-align:center;"><span class="sentiment-positive">利好</span></td>
+                <td style="font-size:11px;">{% for link in info.news_links[:3] %}<div style="margin:2px 0;"><a href="{{ link.url }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;">&#x2022; {{ link.title[:40] }}{% if link.title|length > 40 %}...{% endif %}</a></div>{% endfor %}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+        {% endif %}
+        {% if stock_bearish %}
+        <div style="color:#dc2626;font-weight:600;margin:12px 0 8px;">🔴 利空导向 ({{ stock_bearish|length }} 只)</div>
+        <table class="stock-table">
+            <thead><tr><th>股票</th><th>代码</th><th>次数</th><th>情绪</th><th>相关新闻</th></tr></thead>
+            <tbody>{% for code, info in stock_bearish.items() %}<tr>
+                <td style="font-weight:600;">{% if info.code %}<a href="https://cn.bing.com/search?q={{ info.code }}" target="_blank" rel="noopener" style="color:#dc2626;text-decoration:none;">{{ info.name }}</a>{% else %}{{ info.name }}{% endif %}</td>
+                <td class="stock-code">{{ info.code or '--' }}</td><td style="text-align:center;">{{ info.count }}</td><td style="text-align:center;"><span class="sentiment-negative">利空</span></td>
+                <td style="font-size:11px;">{% for link in info.news_links[:3] %}<div style="margin:2px 0;"><a href="{{ link.url }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;">&#x2022; {{ link.title[:40] }}{% if link.title|length > 40 %}...{% endif %}</a></div>{% endfor %}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+        {% endif %}
+        {% if stock_neutral %}
+        <div style="color:#64748b;font-weight:600;margin:12px 0 8px;">⚪ 中性导向 ({{ stock_neutral|length }} 只)</div>
+        <table class="stock-table">
+            <thead><tr><th>股票</th><th>代码</th><th>次数</th><th>情绪</th><th>相关新闻</th></tr></thead>
+            <tbody>{% for code, info in stock_neutral.items() %}<tr>
+                <td style="font-weight:600;">{% if info.code %}<a href="https://cn.bing.com/search?q={{ info.code }}" target="_blank" rel="noopener" style="color:#64748b;text-decoration:none;">{{ info.name }}</a>{% else %}{{ info.name }}{% endif %}</td>
+                <td class="stock-code">{{ info.code or '--' }}</td><td style="text-align:center;">{{ info.count }}</td><td style="text-align:center;"><span class="sentiment-neutral">中性</span></td>
+                <td style="font-size:11px;">{% for link in info.news_links[:3] %}<div style="margin:2px 0;"><a href="{{ link.url }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;">&#x2022; {{ link.title[:40] }}{% if link.title|length > 40 %}...{% endif %}</a></div>{% endfor %}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+        {% endif %}
+    </div>
+
+    <!-- Bullish tab -->
+    {% if stock_bullish %}
+    <div class="stock-tab-content" id="stock-bullish">
+        <table class="stock-table">
+            <thead><tr><th>股票</th><th>代码</th><th>次数</th><th>情绪</th><th>相关新闻</th></tr></thead>
+            <tbody>{% for code, info in stock_bullish.items() %}<tr>
+                <td style="font-weight:600;">{% if info.code %}<a href="https://cn.bing.com/search?q={{ info.code }}" target="_blank" rel="noopener" style="color:#16a34a;text-decoration:none;">{{ info.name }}</a>{% else %}{{ info.name }}{% endif %}</td>
+                <td class="stock-code">{{ info.code or '--' }}</td><td style="text-align:center;">{{ info.count }}</td><td style="text-align:center;"><span class="sentiment-positive">利好</span></td>
+                <td style="font-size:11px;">{% for link in info.news_links[:3] %}<div style="margin:2px 0;"><a href="{{ link.url }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;">&#x2022; {{ link.title[:40] }}{% if link.title|length > 40 %}...{% endif %}</a></div>{% endfor %}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Bearish tab -->
+    {% if stock_bearish %}
+    <div class="stock-tab-content" id="stock-bearish">
+        <table class="stock-table">
+            <thead><tr><th>股票</th><th>代码</th><th>次数</th><th>情绪</th><th>相关新闻</th></tr></thead>
+            <tbody>{% for code, info in stock_bearish.items() %}<tr>
+                <td style="font-weight:600;">{% if info.code %}<a href="https://cn.bing.com/search?q={{ info.code }}" target="_blank" rel="noopener" style="color:#dc2626;text-decoration:none;">{{ info.name }}</a>{% else %}{{ info.name }}{% endif %}</td>
+                <td class="stock-code">{{ info.code or '--' }}</td><td style="text-align:center;">{{ info.count }}</td><td style="text-align:center;"><span class="sentiment-negative">利空</span></td>
+                <td style="font-size:11px;">{% for link in info.news_links[:3] %}<div style="margin:2px 0;"><a href="{{ link.url }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;">&#x2022; {{ link.title[:40] }}{% if link.title|length > 40 %}...{% endif %}</a></div>{% endfor %}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Neutral tab -->
+    {% if stock_neutral %}
+    <div class="stock-tab-content" id="stock-neutral">
+        <table class="stock-table">
+            <thead><tr><th>股票</th><th>代码</th><th>次数</th><th>情绪</th><th>相关新闻</th></tr></thead>
+            <tbody>{% for code, info in stock_neutral.items() %}<tr>
+                <td style="font-weight:600;">{% if info.code %}<a href="https://cn.bing.com/search?q={{ info.code }}" target="_blank" rel="noopener" style="color:#64748b;text-decoration:none;">{{ info.name }}</a>{% else %}{{ info.name }}{% endif %}</td>
+                <td class="stock-code">{{ info.code or '--' }}</td><td style="text-align:center;">{{ info.count }}</td><td style="text-align:center;"><span class="sentiment-neutral">中性</span></td>
+                <td style="font-size:11px;">{% for link in info.news_links[:3] %}<div style="margin:2px 0;"><a href="{{ link.url }}" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;">&#x2022; {{ link.title[:40] }}{% if link.title|length > 40 %}...{% endif %}</a></div>{% endfor %}</td>
+            </tr>{% endfor %}</tbody>
+        </table>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
-<!-- ==================== 股票交易推荐 (v3.1) ==================== -->
+<!-- ==================== 股票交易推荐 (v3.2 板块分区 + 链接 + 参数解释) ==================== -->
 {% if stock_recommendations %}
 <div class="section">
     <h2>📈 股票交易推荐 <span class="tag" style="background:#ecfdf5;color:#059669;">{{ stock_recommendations|length }} 只</span></h2>
     <div style="font-size:12px;color:#9ca3af;margin:-12px 0 16px;">
         基于 AI 多空分析综合评分，按信号强弱排序。仅供参考，不构成投资建议。
     </div>
-    <div class="reco-grid">
-    {% for rec in stock_recommendations %}
-        {% set rec_css = 'buy' if rec.recommendation == '买入'
-            else 'accumulate' if rec.recommendation == '增持'
-            else 'hold' if rec.recommendation == '观望'
-            else 'reduce' if rec.recommendation == '减持'
-            else 'sell' %}
-        {% set conf_class = 'high' if rec.confidence >= 7
-            else 'medium' if rec.confidence >= 4
-            else 'low' %}
-        {% set signal_class = 'positive' if rec.avg_signal > 0
-            else 'negative' if rec.avg_signal < 0
-            else 'neutral' %}
-        {% set rec_emoji = '🟢' if rec.recommendation == '买入'
-            else '🟩' if rec.recommendation == '增持'
-            else '⬜' if rec.recommendation == '观望'
-            else '🟧' if rec.recommendation == '减持'
-            else '🔴' %}
-        <div class="reco-card {{ rec_css }}">
-            <div class="reco-header">
-                <div class="reco-stock-info">
-                    <span class="reco-stock-name">{{ rec.name }}</span>
-                    {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
-                </div>
-                <span class="reco-badge {{ rec_css }}">{{ rec_emoji }} {{ rec.recommendation }}</span>
-            </div>
-
-            <!-- Confidence Bar -->
-            <div class="reco-confidence">
-                <span class="reco-confidence-label">信号强度</span>
-                <div class="reco-confidence-track">
-                    <div class="reco-confidence-fill {{ conf_class }}" style="width: {{ rec.confidence * 10 }}%;"></div>
-                </div>
-                <span class="reco-confidence-value" style="color: {% if rec.confidence >= 7 %}#16a34a{% elif rec.confidence >= 4 %}#f59e0b{% else %}#94a3b8{% endif %};">
-                    {{ rec.confidence }}/10
-                </span>
-            </div>
-
-            <!-- Sentiment Mini Bar -->
-            {% set total_s = rec.positive_count + rec.neutral_count + rec.negative_count %}
-            {% if total_s > 0 %}
-            <div class="reco-sentiment-mini">
-                {% if rec.positive_count > 0 %}
-                <div class="seg-positive" style="width: {{ (rec.positive_count / total_s * 100)|round(1) }}%;"></div>
-                {% endif %}
-                {% if rec.neutral_count > 0 %}
-                <div class="seg-neutral" style="width: {{ (rec.neutral_count / total_s * 100)|round(1) }}%;"></div>
-                {% endif %}
-                {% if rec.negative_count > 0 %}
-                <div class="seg-negative" style="width: {{ (rec.negative_count / total_s * 100)|round(1) }}%;"></div>
-                {% endif %}
-            </div>
-            {% endif %}
-
-            <!-- Signal Row -->
-            <div class="reco-signal-row">
-                <span>综合信号:</span>
-                <span class="reco-signal-value {{ signal_class }}">
-                    {% if rec.avg_signal > 0 %}+{% endif %}{{ rec.avg_signal }}
-                </span>
-                <span class="reco-count">📰 {{ rec.count }} 次提及</span>
-                <span class="sentiment-{{ 'positive' if rec.sentiment_label == '利好' else 'negative' if rec.sentiment_label == '利空' else 'neutral' }}">
-                    {{ rec.sentiment_label }}
-                </span>
-            </div>
-
-            <!-- Key Reason -->
-            {% if rec.key_reason %}
-            <div class="reco-key-reason">{{ rec.key_reason }}</div>
-            {% endif %}
-
-            <!-- Meta Tags -->
-            <div class="reco-meta-row">
-                {% if rec.risk_level == '高' %}
-                <span class="risk-high">高风险</span>
-                {% elif rec.risk_level == '中' %}
-                <span class="risk-medium">中风险</span>
-                {% else %}
-                <span class="risk-low">低风险</span>
-                {% endif %}
-                {% if rec.trend == '短期' %}
-                <span class="trend-chip short">短期</span>
-                {% elif rec.trend == '中期' %}
-                <span class="trend-chip mid">中期</span>
-                {% else %}
-                <span class="trend-chip long">长期</span>
-                {% endif %}
-                <span style="font-size:11px;color:#6b7280;">
-                    一致性 {{ (rec.consensus * 100)|int }}%
-                </span>
-            </div>
-
-            <!-- Related News -->
-            {% if rec.news_titles %}
-            <ul class="reco-news-list">
-                {% for title in rec.news_titles[:3] %}
-                <li>{{ title }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
-        </div>
-    {% endfor %}
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#374151;line-height:1.8;">
+        <div style="font-weight:600;margin-bottom:6px;">📊 参数说明</div>
+        <div><strong>信号强度 (0-10)</strong>：衡量信号可靠性。计算 = min(提及次数×2, 10) + 一致性加分。满分10分，≥7为可靠信号。</div>
+        <div><strong>综合信号 (±10)</strong>：衡量多空方向。计算 = Σ(情绪值×影响力) ÷ 提及次数。正值看好，负值看空。例：2条利好新闻影响力8和6，信号 = (1×8+1×6)÷2 = <strong>+7</strong>。</div>
     </div>
+
+    <!-- Tab navigation -->
+    <div class="reco-tabs">
+        <div class="reco-tab active" onclick="showRecoTab('all', this)">全部 ({{ stock_recommendations|length }})</div>
+        {% set buy_list = stock_recommendations|selectattr('recommendation', 'equalto', '买入')|list %}
+        {% set acc_list = stock_recommendations|selectattr('recommendation', 'equalto', '增持')|list %}
+        {% set hold_list = stock_recommendations|selectattr('recommendation', 'equalto', '观望')|list %}
+        {% set reduce_list = stock_recommendations|selectattr('recommendation', 'equalto', '减持')|list %}
+        {% set sell_list = stock_recommendations|selectattr('recommendation', 'equalto', '卖出')|list %}
+        {% if buy_list %}<div class="reco-tab" onclick="showRecoTab('buy', this)">🟢 买入 ({{ buy_list|length }})</div>{% endif %}
+        {% if acc_list %}<div class="reco-tab" onclick="showRecoTab('accumulate', this)">🟩 增持 ({{ acc_list|length }})</div>{% endif %}
+        {% if hold_list %}<div class="reco-tab" onclick="showRecoTab('hold', this)">⬜ 观望 ({{ hold_list|length }})</div>{% endif %}
+        {% if reduce_list %}<div class="reco-tab" onclick="showRecoTab('reduce', this)">🟧 减持 ({{ reduce_list|length }})</div>{% endif %}
+        {% if sell_list %}<div class="reco-tab" onclick="showRecoTab('sell', this)">🔴 卖出 ({{ sell_list|length }})</div>{% endif %}
+    </div>
+
+    <!-- All tab -->
+    <div class="reco-tab-content active" id="reco-all">
+        <div class="reco-grid">
+        {% for rec in stock_recommendations %}
+            {% set rec_css = 'buy' if rec.recommendation == '买入'
+                else 'accumulate' if rec.recommendation == '增持'
+                else 'hold' if rec.recommendation == '观望'
+                else 'reduce' if rec.recommendation == '减持'
+                else 'sell' %}
+            {% set conf_class = 'high' if rec.confidence >= 7
+                else 'medium' if rec.confidence >= 4
+                else 'low' %}
+            {% set signal_class = 'positive' if rec.avg_signal > 0
+                else 'negative' if rec.avg_signal < 0
+                else 'neutral' %}
+            {% set rec_emoji = '🟢' if rec.recommendation == '买入'
+                else '🟩' if rec.recommendation == '增持'
+                else '⬜' if rec.recommendation == '观望'
+                else '🟧' if rec.recommendation == '减持'
+                else '🔴' %}
+            <div class="reco-card {{ rec_css }}" data-reco="{{ rec_css }}">
+                <div class="reco-header">
+                    <div class="reco-stock-info">
+                        <span class="reco-stock-name">
+                            {% if rec.code %}
+                            <a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
+                            {% else %}
+                            {{ rec.name }}
+                            {% endif %}
+                        </span>
+                        {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                    </div>
+                    <span class="reco-badge {{ rec_css }}">{{ rec_emoji }} {{ rec.recommendation }}</span>
+                </div>
+
+                <!-- Confidence Bar with tooltip -->
+                <div class="reco-confidence">
+                    <span class="reco-confidence-label">信号强度</span>
+                    <div class="reco-confidence-track">
+                        <div class="reco-confidence-fill {{ conf_class }}" style="width: {{ rec.confidence * 10 }}%;"></div>
+                    </div>
+                    <span class="reco-confidence-value" style="color: {% if rec.confidence >= 7 %}#16a34a{% elif rec.confidence >= 4 %}#f59e0b{% else %}#94a3b8{% endif %};">
+                        {{ rec.confidence }}/10
+                    </span>
+                </div>
+
+                <!-- Signal Row with tooltip -->
+                <div class="reco-signal-row">
+                    <span>综合信号:</span>
+                    <span class="reco-signal-value {{ signal_class }}">
+                        {% if rec.avg_signal > 0 %}+{% endif %}{{ rec.avg_signal }}
+                    </span>
+                    <span class="reco-count">📰 {{ rec.count }} 次提及</span>
+                    <span class="sentiment-{{ 'positive' if rec.sentiment_label == '利好' else 'negative' if rec.sentiment_label == '利空' else 'neutral' }}">
+                        {{ rec.sentiment_label }}
+                    </span>
+                </div>
+
+                <!-- Key Reason -->
+                {% if rec.key_reason %}
+                <div class="reco-key-reason">{{ rec.key_reason }}</div>
+                {% endif %}
+
+                <!-- Meta Tags -->
+                <div class="reco-meta-row">
+                    {% if rec.risk_level == '高' %}
+                    <span class="risk-high">高风险</span>
+                    {% elif rec.risk_level == '中' %}
+                    <span class="risk-medium">中风险</span>
+                    {% else %}
+                    <span class="risk-low">低风险</span>
+                    {% endif %}
+                    {% if rec.trend == '短期' %}
+                    <span class="trend-chip short">短期</span>
+                    {% elif rec.trend == '中期' %}
+                    <span class="trend-chip mid">中期</span>
+                    {% else %}
+                    <span class="trend-chip long">长期</span>
+                    {% endif %}
+                    <span style="font-size:11px;color:#6b7280;">
+                        一致性 {{ (rec.consensus * 100)|int }}%
+                    </span>
+                </div>
+
+                <!-- Related News with links -->
+                {% if rec.news_links %}
+                <ul class="reco-news-list">
+                    {% for link in rec.news_links[:3] %}
+                    <li><a href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.title }}">{{ link.title }}</a></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <!-- Individual tabs (hidden by default) -->
+    {% for tab_name, tab_label, tab_emoji in [('buy', '买入', '🟢'), ('accumulate', '增持', '🟩'), ('hold', '观望', '⬜'), ('reduce', '减持', '🟧'), ('sell', '卖出', '🔴')] %}
+    {% set tab_list = stock_recommendations|selectattr('recommendation', 'equalto', tab_label)|list %}
+    {% if tab_list %}
+    <div class="reco-tab-content" id="reco-{{ tab_name }}">
+        <div class="reco-grid">
+        {% for rec in tab_list %}
+            {% set rec_css = tab_name %}
+            {% set conf_class = 'high' if rec.confidence >= 7
+                else 'medium' if rec.confidence >= 4
+                else 'low' %}
+            {% set signal_class = 'positive' if rec.avg_signal > 0
+                else 'negative' if rec.avg_signal < 0
+                else 'neutral' %}
+            <div class="reco-card {{ rec_css }}">
+                <div class="reco-header">
+                    <div class="reco-stock-info">
+                        <span class="reco-stock-name">
+                            {% if rec.code %}
+                            <a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
+                            {% else %}
+                            {{ rec.name }}
+                            {% endif %}
+                        </span>
+                        {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                    </div>
+                    <span class="reco-badge {{ rec_css }}">{{ tab_emoji }} {{ rec.recommendation }}</span>
+                </div>
+                <div class="reco-confidence">
+                    <span class="reco-confidence-label">信号强度</span>
+                    <div class="reco-confidence-track">
+                        <div class="reco-confidence-fill {{ conf_class }}" style="width: {{ rec.confidence * 10 }}%;"></div>
+                    </div>
+                    <span class="reco-confidence-value" style="color: {% if rec.confidence >= 7 %}#16a34a{% elif rec.confidence >= 4 %}#f59e0b{% else %}#94a3b8{% endif %};">
+                        {{ rec.confidence }}/10
+                    </span>
+                </div>
+                <div class="reco-signal-row">
+                    <span>综合信号:</span>
+                    <span class="reco-signal-value {{ signal_class }}">
+                        {% if rec.avg_signal > 0 %}+{% endif %}{{ rec.avg_signal }}
+                    </span>
+                    <span class="reco-count">📰 {{ rec.count }} 次提及</span>
+                </div>
+                {% if rec.key_reason %}
+                <div class="reco-key-reason">{{ rec.key_reason }}</div>
+                {% endif %}
+                <div class="reco-meta-row">
+                    {% if rec.risk_level == '高' %}<span class="risk-high">高风险</span>
+                    {% elif rec.risk_level == '中' %}<span class="risk-medium">中风险</span>
+                    {% else %}<span class="risk-low">低风险</span>{% endif %}
+                    {% if rec.trend == '短期' %}<span class="trend-chip short">短期</span>
+                    {% elif rec.trend == '中期' %}<span class="trend-chip mid">中期</span>
+                    {% else %}<span class="trend-chip long">长期</span>{% endif %}
+                </div>
+                {% if rec.news_links %}
+                <ul class="reco-news-list">
+                    {% for link in rec.news_links[:3] %}
+                    <li><a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.title }}</a></li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
 </div>
 {% endif %}
 
-<!-- Industry Impact -->
-{% if industry_map %}
+<!-- ==================== 行业影响 (v3.2 分类) ==================== -->
+{% if industry_ranked %}
 <div class="section">
-    <h2>行业影响 <span class="tag" style="background:#eff6ff;color:#2563eb;">{{ industry_map|length }}</span></h2>
-    <div class="cluster-list">
-    {% for industry, news in industry_map.items() %}
-        <div class="cluster-card">
-            <div class="cluster-name">{{ industry }}</div>
-            <div class="cluster-items">
+    <h2>行业影响 <span class="tag" style="background:#eff6ff;color:#2563eb;">{{ industry_ranked|length }}</span></h2>
+    {% set top3 = industry_ranked[:3] %}
+    {% set others = industry_ranked[3:] %}
+
+    <!-- Top 3 industries -->
+    <div class="ic-top-grid">
+    {% for industry, news in top3 %}
+        <div class="ic-card">
+            <div class="ic-name">🏭 {{ industry }}</div>
+            <div class="ic-news-count">📰 {{ news|length }} 条相关新闻</div>
+            <div class="ic-news-list">
                 {% for n in news[:3] %}
-                <div style="padding:2px 0;">&#x2022; {{ n.title }}</div>
+                <a href="{{ n.url }}" target="_blank" rel="noopener" title="{{ n.title }}">&#x2022; {{ n.title[:50] }}{% if n.title|length > 50 %}...{% endif %}</a>
                 {% endfor %}
             </div>
-            <div class="cluster-count">共 {{ news|length }} 条相关新闻</div>
         </div>
     {% endfor %}
     </div>
+
+    <!-- Other industries (collapsible) -->
+    {% if others %}
+    <div class="ic-other-toggle" onclick="toggleOther('industryOther')">
+        查看其他 {{ others|length }} 个行业 ▼
+    </div>
+    <div class="ic-other-list" id="industryOther">
+        <div class="ic-top-grid" style="margin-top:12px;">
+        {% for industry, news in others %}
+            <div class="ic-card">
+                <div class="ic-name">🏭 {{ industry }}</div>
+                <div class="ic-news-count">📰 {{ news|length }} 条相关新闻</div>
+                <div class="ic-news-list">
+                    {% for n in news[:2] %}
+                    <a href="{{ n.url }}" target="_blank" rel="noopener" title="{{ n.title }}">&#x2022; {{ n.title[:50] }}{% if n.title|length > 50 %}...{% endif %}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
-<!-- Company Impact -->
+<!-- ==================== 公司影响 (v3.2 分类 + 股票链接) ==================== -->
 {% if company_map %}
 <div class="section">
     <h2>公司影响 <span class="tag" style="background:#fef3c7;color:#d97706;">{{ company_map|length }}</span></h2>
-    <div class="cluster-list">
-    {% for company, news in company_map.items() %}
-        <div class="cluster-card">
-            <div class="cluster-name">{{ company }}</div>
-            <div class="cluster-items">
+    {% set company_ranked = company_map.items()|sort(attribute='1|length', reverse=true) %}
+    {% set top3_companies = [] %}
+    {% set other_companies = [] %}
+    {% for item in company_ranked %}
+        {% if loop.index <= 3 %}
+            {% set _ = top3_companies.append(item) %}
+        {% else %}
+            {% set _ = other_companies.append(item) %}
+        {% endif %}
+    {% endfor %}
+
+    <!-- Top 3 companies -->
+    <div class="ic-top-grid">
+    {% for company, news in top3_companies %}
+        <div class="ic-card">
+            <div class="ic-name">🏢 {{ company }}</div>
+            <div class="ic-news-count">📰 {{ news|length }} 条相关新闻</div>
+            <div class="ic-news-list">
                 {% for n in news[:3] %}
-                <div style="padding:2px 0;">&#x2022; {{ n.title }}</div>
+                <a href="{{ n.url }}" target="_blank" rel="noopener" title="{{ n.title }}">&#x2022; {{ n.title[:50] }}{% if n.title|length > 50 %}...{% endif %}</a>
                 {% endfor %}
             </div>
-            <div class="cluster-count">共 {{ news|length }} 条相关新闻</div>
         </div>
     {% endfor %}
     </div>
+
+    <!-- Other companies (collapsible) -->
+    {% if other_companies %}
+    <div class="ic-other-toggle" onclick="toggleOther('companyOther')">
+        查看其他 {{ other_companies|length }} 家公司 ▼
+    </div>
+    <div class="ic-other-list" id="companyOther">
+        <div class="ic-top-grid" style="margin-top:12px;">
+        {% for company, news in other_companies %}
+            <div class="ic-card">
+                <div class="ic-name">🏢 {{ company }}</div>
+                <div class="ic-news-count">📰 {{ news|length }} 条相关新闻</div>
+                <div class="ic-news-list">
+                    {% for n in news[:2] %}
+                    <a href="{{ n.url }}" target="_blank" rel="noopener" title="{{ n.title }}">&#x2022; {{ n.title[:50] }}{% if n.title|length > 50 %}...{% endif %}</a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -1330,6 +1663,71 @@ body {
 </div>
 
 <script>
+// ==================== Formula Popup ====================
+function showFormula() {
+    document.getElementById('formulaPopup').classList.add('show');
+    document.getElementById('formulaOverlay').classList.add('show');
+}
+function hideFormula() {
+    document.getElementById('formulaPopup').classList.remove('show');
+    document.getElementById('formulaOverlay').classList.remove('show');
+}
+
+// ==================== Stock Recommendation Tabs ====================
+function showRecoTab(tabName, btn) {
+    // Hide all tab contents
+    var contents = document.querySelectorAll('.reco-tab-content');
+    contents.forEach(function(c) { c.classList.remove('active'); });
+    // Deactivate all tabs
+    var tabs = document.querySelectorAll('.reco-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    // Show selected tab content
+    var target = document.getElementById('reco-' + tabName);
+    if (target) target.classList.add('active');
+    // Activate clicked tab
+    if (btn) btn.classList.add('active');
+}
+
+// ==================== Bullish/Bearish Tabs ====================
+function showBbTab(tabName, btn) {
+    var section = btn.closest('.section');
+    var contents = section.querySelectorAll('.bb-tab-content');
+    contents.forEach(function(c) { c.classList.remove('active'); });
+    var tabs = section.querySelectorAll('.reco-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    var target = document.getElementById('bb-' + tabName);
+    if (target) target.classList.add('active');
+    if (btn) btn.classList.add('active');
+}
+
+// ==================== Stock Analysis Tabs ====================
+function showStockTab(tabName, btn) {
+    var section = btn.closest('.section');
+    var contents = section.querySelectorAll('.stock-tab-content');
+    contents.forEach(function(c) { c.classList.remove('active'); });
+    var tabs = section.querySelectorAll('.reco-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    var target = document.getElementById('stock-' + tabName);
+    if (target) target.classList.add('active');
+    if (btn) btn.classList.add('active');
+}
+
+// ==================== Toggle Other Sections ====================
+function toggleOther(id) {
+    var el = document.getElementById(id);
+    if (el) {
+        el.classList.toggle('show');
+        var toggle = el.previousElementSibling;
+        if (toggle && toggle.classList.contains('ic-other-toggle')) {
+            if (el.classList.contains('show')) {
+                toggle.textContent = toggle.textContent.replace('▼', '▲');
+            } else {
+                toggle.textContent = toggle.textContent.replace('▲', '▼');
+            }
+        }
+    }
+}
+
 // ==================== News Filter & Search ====================
 (function() {
     var activeFilters = { risk: 'all', sentiment: 'all', trend: 'all' };
@@ -1358,7 +1756,6 @@ body {
             var trend = item.getAttribute('data-trend') || 'none';
             var title = (item.getAttribute('data-title') || '').toLowerCase();
 
-            // AND logic: all active filters must match
             var matchRisk = activeFilters.risk === 'all' || risk === activeFilters.risk;
             var matchSentiment = activeFilters.sentiment === 'all' || sentiment === activeFilters.sentiment;
             var matchTrend = activeFilters.trend === 'all' || trend === activeFilters.trend;
@@ -1367,14 +1764,12 @@ body {
             if (matchRisk && matchSentiment && matchTrend && matchSearch) {
                 item.style.display = '';
                 visibleCount++;
-                // Highlight search keyword in title
                 highlightTitle(item, searchKeyword);
             } else {
                 item.style.display = 'none';
             }
         });
 
-        // Update count display
         var countEl = document.getElementById('filterCount');
         if (countEl) {
             countEl.textContent = '显示 ' + visibleCount + ' / ' + total + ' 条';
@@ -1384,7 +1779,6 @@ body {
     function highlightTitle(item, keyword) {
         var titleEl = item.querySelector('.news-title');
         if (!titleEl) return;
-        // Restore original text from data attribute
         var original = titleEl.getAttribute('data-original-title');
         if (!original) {
             original = titleEl.textContent;
@@ -1408,7 +1802,6 @@ body {
         return div.innerHTML;
     }
 
-    // Initialize: build data-title for all news items
     document.addEventListener('DOMContentLoaded', function() {
         var items = document.querySelectorAll('.news-item');
         items.forEach(function(item) {
@@ -1416,9 +1809,7 @@ body {
             if (titleEl && !item.getAttribute('data-title')) {
                 item.setAttribute('data-title', titleEl.textContent);
             }
-            // Collapse all by default (remove expanded class if present)
             item.classList.remove('expanded');
-            // Unanalyzed items: keep body visible
             if (item.classList.contains('unanalyzed')) {
                 item.classList.add('expanded');
                 var body = item.querySelector('.news-body');
@@ -1433,8 +1824,7 @@ body {
 
 // ==================== News Item Toggle ====================
 window.toggleNewsItem = function(item) {
-    // Don't toggle if clicking a link
-    if (event.target.closest('a')) return;
+    if (event && event.target.closest('a')) return;
     item.classList.toggle('expanded');
     var body = item.querySelector('.news-body');
     if (body) {

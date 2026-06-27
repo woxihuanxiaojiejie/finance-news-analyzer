@@ -143,6 +143,9 @@ def _compute_stock_recommendations(stock_map: dict[str, dict]) -> list[dict]:
         neg = sum(1 for s in s_list if s == "利空")
         sentiment_label = "利好" if pos > neg else ("利空" if neg > pos else "中性")
 
+        # 10. 新闻链接列表（含 url）
+        news_links = info.get("news_links", [])
+
         recommendations.append({
             "name": info["name"],
             "code": info["code"],
@@ -152,13 +155,14 @@ def _compute_stock_recommendations(stock_map: dict[str, dict]) -> list[dict]:
             "confidence": confidence,
             "consensus": consensus,
             "sentiment_label": sentiment_label,
-            "positive_count": pos,
-            "negative_count": neg,
+            "positive_count": pos_count,
+            "negative_count": neg_count,
             "neutral_count": neu_count,
             "risk_level": dominant_risk,
             "trend": dominant_trend,
             "key_reason": key_reason,
             "news_titles": info.get("news_titles", []),
+            "news_links": news_links,   # v3.2: 新闻标题+链接
         })
 
     # 按 |avg_signal| * confidence 降序排列（最强信号在前）
@@ -223,6 +227,19 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
         "net_bias": net_bias,
     }
 
+    # ---- 多空观点分类 (v3.2) ----
+    bullish_bearish_bullish = []
+    bullish_bearish_bearish = []
+    bullish_bearish_neutral = []
+    for item in bullish_bearish_list:
+        s = item.get("sentiment", "中性")
+        if s == "利好":
+            bullish_bearish_bullish.append(item)
+        elif s == "利空":
+            bullish_bearish_bearish.append(item)
+        else:
+            bullish_bearish_neutral.append(item)
+
     # ---- 影响力 TOP N (v3.0 增强) ----
     impact_ranked = sorted(
         with_analysis,
@@ -239,6 +256,7 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
                              round(impact_score * (credibility_score / 100) * freshness_score, 1))
         impact_top.append({
             "title": news.get("title", ""),
+            "url": news.get("url", ""),
             "impact_score": impact_score,
             "credibility_score": credibility_score,
             "freshness_score": round(freshness_score, 2),
@@ -294,7 +312,7 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
                 company_map[comp] = []
             company_map[comp].append(news)
 
-    # ---- 关联股票聚合 ----
+    # ---- 关联股票聚合 + 分类 (v3.2) ----
     stock_map: dict[str, dict] = {}
     for news in with_analysis:
         a = news["ai_analysis"]
@@ -309,20 +327,42 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
                     "count": 0,
                     "sentiments": [],
                     "news_titles": [],
-                    "mentions": [],     # v3.1: 每条提及的详细分析数据
+                    "news_links": [],   # v3.2: 保存新闻标题+链接
+                    "mentions": [],
                 }
             stock_map[code]["count"] += 1
             stock_map[code]["sentiments"].append(a.get("sentiment", "中性"))
             if len(stock_map[code]["news_titles"]) < 5:
                 stock_map[code]["news_titles"].append(news.get("title", ""))
-            # v3.1: 收集每条提及的详细数据，用于计算交易推荐
+            if len(stock_map[code]["news_links"]) < 5:
+                stock_map[code]["news_links"].append({
+                    "title": news.get("title", ""),
+                    "url": news.get("url", ""),
+                })
             stock_map[code]["mentions"].append({
                 "sentiment": a.get("sentiment", "中性"),
                 "impact_score": a.get("impact_score", 0),
                 "bullish_bearish": a.get("bullish_bearish", ""),
                 "trend": a.get("trend", "短期"),
                 "risk_level": a.get("risk_level", "低"),
+                "url": news.get("url", ""),
             })
+
+    # ---- 关联股票分类：利好/利空/中性 ----
+    stock_bullish = {}
+    stock_bearish = {}
+    stock_neutral = {}
+    for code, info in stock_map.items():
+        s_list = info["sentiments"]
+        pos = sum(1 for s in s_list if s == "利好")
+        neg = sum(1 for s in s_list if s == "利空")
+        neu = sum(1 for s in s_list if s == "中性")
+        if pos > neg and pos > neu:
+            stock_bullish[code] = info
+        elif neg > pos and neg > neu:
+            stock_bearish[code] = info
+        else:
+            stock_neutral[code] = info
 
     for stock_info in stock_map.values():
         s_list = stock_info["sentiments"]
@@ -347,21 +387,6 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
             total_failed += 1
         else:
             total_skipped += 1
-
-    # ---- 今日概览（取前 5 条重要的） ----
-    overview = []
-    for news in with_analysis:
-        if len(overview) >= 5:
-            break
-        a = news.get("ai_analysis", {})
-        if a.get("risk_level") in ("高", "中"):
-            overview.append({
-                "title": news.get("title"),
-                "summary": a.get("summary"),
-                "risk_level": a.get("risk_level"),
-                "sentiment": a.get("sentiment", "中性"),
-                "impact_score": a.get("impact_score", 0),
-            })
 
     # ---- 市场温度计算 (v3.0) ----
     # 40% × 净情绪值 + 30% × 平均影响力 + 20% × 利好占比 + 10% × 风险修正
@@ -418,7 +443,7 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
                 "strength": min(strength, 10),
             })
 
-    # ---- AI 投资观察名单 (v3.0) ----
+    # ---- AI 投资观察名单 (v3.2) ----
     watchlist = []
     for ind_name, ind_news in industry_ranked[:5]:
         if len(ind_news) < 2:
@@ -429,6 +454,7 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
             "reason": f"当日 {len(ind_news)} 条相关新闻，为最活跃板块之一",
             "trend": _watchlist_trend(ind_news),
             "risk": _watchlist_risk(ind_news),
+            "news_links": [{"title": n.get("title", ""), "url": n.get("url", "")} for n in ind_news[:5]],
         })
 
     # --- 温度等级标签 ---
@@ -456,18 +482,23 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
         "industry_ranked": industry_ranked,
         "company_map": company_map,
         "stock_map": stock_map,
+        "stock_bullish": stock_bullish,    # v3.2: 利好分类
+        "stock_bearish": stock_bearish,    # v3.2: 利空分类
+        "stock_neutral": stock_neutral,    # v3.2: 中性分类
         "source_stats": source_stats,
         "total_analyzed": total_analyzed,
         "total_failed": total_failed,
         "total_skipped": total_skipped,
         "total_news": len(news_list),
-        "overview": overview,
         # 新增分析维度
         "sentiment_overview": sentiment_overview,
         "impact_top": impact_top,
         "avg_impact": avg_impact,
         "rotation_signals": rotation_signals,
         "bullish_bearish_list": bullish_bearish_list,
+        "bullish_bearish_bullish": bullish_bearish_bullish,  # v3.2
+        "bullish_bearish_bearish": bullish_bearish_bearish,  # v3.2
+        "bullish_bearish_neutral": bullish_bearish_neutral,  # v3.2
         "trend_stats": trend_stats,
         # v3.0 新增
         "market_temperature": market_temperature,
@@ -499,12 +530,14 @@ def render_report(
         "language": report_config.get("language", "zh-CN"),
         "date": date_str,
         "generated_at": today.strftime("%Y-%m-%d %H:%M:%S"),
-        "overview": agg["overview"],
         "high_risk": agg["high_risk"],
         "industry_map": agg["industry_map"],
         "industry_ranked": agg["industry_ranked"],
         "company_map": agg["company_map"],
         "stock_map": agg["stock_map"],
+        "stock_bullish": agg["stock_bullish"],    # v3.2
+        "stock_bearish": agg["stock_bearish"],    # v3.2
+        "stock_neutral": agg["stock_neutral"],    # v3.2
         "source_stats": agg["source_stats"],
         "news_list": news_list,
         "total_news": agg["total_news"],
@@ -519,6 +552,9 @@ def render_report(
         "avg_impact": agg["avg_impact"],
         "rotation_signals": agg["rotation_signals"],
         "bullish_bearish_list": agg["bullish_bearish_list"],
+        "bullish_bearish_bullish": agg["bullish_bearish_bullish"],  # v3.2
+        "bullish_bearish_bearish": agg["bullish_bearish_bearish"],  # v3.2
+        "bullish_bearish_neutral": agg["bullish_bearish_neutral"],  # v3.2
         "trend_stats": agg["trend_stats"],
         # v3.0 新增
         "market_temperature": agg["market_temperature"],
@@ -527,7 +563,7 @@ def render_report(
         "daily_focus": agg["daily_focus"],
         "capital_flow": agg["capital_flow"],
         "watchlist": agg["watchlist"],
-        "stock_recommendations": agg["stock_recommendations"],  # v3.1
+        "stock_recommendations": agg["stock_recommendations"],
     }
 
     env = jinja2.Environment(
@@ -537,6 +573,7 @@ def render_report(
     template = env.get_template("report.html")
     html = template.render(**context)
 
+    import time
     filename = f"{date_str}-finance-news-report.html"
     filepath = os.path.abspath(os.path.join(output_dir, filename))
     os.makedirs(output_dir, exist_ok=True)
