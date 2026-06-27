@@ -911,7 +911,13 @@ body {
         <div class="bb-grid">
         {% for bb in bullish_bearish_bullish %}
             <div class="bb-card bullish">
+                {% if bb.url %}
+                <a href="{{ bb.url }}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
+                    <div class="bb-title">{{ bb.title }} <span style="font-size:10px; color:#9ca3af;">↗</span></div>
+                </a>
+                {% else %}
                 <div class="bb-title">{{ bb.title }}</div>
+                {% endif %}
                 <div class="bb-text">{{ bb.bullish_bearish }}</div>
                 <div class="bb-meta">
                     <span class="sentiment-positive">利好</span>
@@ -927,7 +933,13 @@ body {
         <div class="bb-grid">
         {% for bb in bullish_bearish_bearish %}
             <div class="bb-card bearish">
+                {% if bb.url %}
+                <a href="{{ bb.url }}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
+                    <div class="bb-title">{{ bb.title }} <span style="font-size:10px; color:#9ca3af;">↗</span></div>
+                </a>
+                {% else %}
                 <div class="bb-title">{{ bb.title }}</div>
+                {% endif %}
                 <div class="bb-text">{{ bb.bullish_bearish }}</div>
                 <div class="bb-meta">
                     <span class="sentiment-negative">利空</span>
@@ -943,7 +955,13 @@ body {
         <div class="bb-grid">
         {% for bb in bullish_bearish_neutral %}
             <div class="bb-card neutral">
+                {% if bb.url %}
+                <a href="{{ bb.url }}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
+                    <div class="bb-title">{{ bb.title }} <span style="font-size:10px; color:#9ca3af;">↗</span></div>
+                </a>
+                {% else %}
                 <div class="bb-title">{{ bb.title }}</div>
+                {% endif %}
                 <div class="bb-text">{{ bb.bullish_bearish }}</div>
                 <div class="bb-meta">
                     <span class="sentiment-neutral">中性</span>
@@ -962,7 +980,13 @@ body {
         <div class="bb-grid">
         {% for bb in bullish_bearish_bullish %}
             <div class="bb-card bullish">
+                {% if bb.url %}
+                <a href="{{ bb.url }}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
+                    <div class="bb-title">{{ bb.title }} <span style="font-size:10px; color:#9ca3af;">↗</span></div>
+                </a>
+                {% else %}
                 <div class="bb-title">{{ bb.title }}</div>
+                {% endif %}
                 <div class="bb-text">{{ bb.bullish_bearish }}</div>
                 <div class="bb-meta">
                     <span class="sentiment-positive">利好</span>
@@ -981,7 +1005,13 @@ body {
         <div class="bb-grid">
         {% for bb in bullish_bearish_bearish %}
             <div class="bb-card bearish">
+                {% if bb.url %}
+                <a href="{{ bb.url }}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
+                    <div class="bb-title">{{ bb.title }} <span style="font-size:10px; color:#9ca3af;">↗</span></div>
+                </a>
+                {% else %}
                 <div class="bb-title">{{ bb.title }}</div>
+                {% endif %}
                 <div class="bb-text">{{ bb.bullish_bearish }}</div>
                 <div class="bb-meta">
                     <span class="sentiment-negative">利空</span>
@@ -1000,7 +1030,13 @@ body {
         <div class="bb-grid">
         {% for bb in bullish_bearish_neutral %}
             <div class="bb-card neutral">
+                {% if bb.url %}
+                <a href="{{ bb.url }}" target="_blank" rel="noopener" style="text-decoration:none; color:inherit; display:block;">
+                    <div class="bb-title">{{ bb.title }} <span style="font-size:10px; color:#9ca3af;">↗</span></div>
+                </a>
+                {% else %}
                 <div class="bb-title">{{ bb.title }}</div>
+                {% endif %}
                 <div class="bb-text">{{ bb.bullish_bearish }}</div>
                 <div class="bb-meta">
                     <span class="sentiment-neutral">中性</span>

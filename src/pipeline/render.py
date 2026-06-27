@@ -203,6 +203,7 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
         if a.get("bullish_bearish"):
             bullish_bearish_list.append({
                 "title": news.get("title", ""),
+                "url": news.get("url", ""),
                 "bullish_bearish": a["bullish_bearish"],
                 "sentiment": a.get("sentiment", "中性"),
                 "risk_level": a.get("risk_level", "低"),
