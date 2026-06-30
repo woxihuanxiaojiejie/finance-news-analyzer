@@ -383,6 +383,8 @@ body {
 .bb-tab-content.active { display: block; }
 .board-tab-content { display: none; }
 .board-tab-content.active { display: block; }
+.sf-tab-content { display: none; }
+.sf-tab-content.active { display: block; }
 .stock-tab-content { display: none; }
 .stock-tab-content.active { display: block; }
 
@@ -1248,6 +1250,196 @@ body {
 </div>
 {% endif %}
 
+<!-- ==================== 情绪+资金流 AI 推荐 (v3.5) ==================== -->
+{% if sentiment_flow_recs %}
+<div class="section">
+    <h2>🧠 AI 情绪+资金流推荐
+        <span class="tag" style="background:#ede9fe;color:#7c3aed;">v3.5 新</span>
+        <span class="tag" style="background:#f8fafc;color:#64748b;">{{ sentiment_flow_recs|length }} 只</span>
+    </h2>
+    <div style="font-size:12px;color:#9ca3af;margin:-12px 0 16px;">
+        AI 综合分析当日市场情绪、板块轮动信号和宏观环境，主动推荐各板块标的。不同于下方「新闻驱动」推荐（仅基于新闻中提及的股票），此模块 AI 可推荐新闻未直接覆盖的优质标的。仅供参考，不构成投资建议。
+    </div>
+
+    <!-- 按板块和方向聚合 -->
+    {% set sf_bullish = sentiment_flow_recs|selectattr('direction', 'equalto', '看多')|list %}
+    {% set sf_bearish = sentiment_flow_recs|selectattr('direction', 'equalto', '看空')|list %}
+    {% set sf_boards = {} %}
+    {% for rec in sentiment_flow_recs %}
+        {% set b = rec.board or '其他' %}
+        {% if b not in sf_boards %}{% set _ = sf_boards.update({b: []}) %}{% endif %}
+        {% set _ = sf_boards[b].append(rec) %}
+    {% endfor %}
+
+    <!-- 总览卡片 -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#dcfce7,#f0fdf4);border-radius:8px;padding:14px;text-align:center;border:1px solid #bbf7d0;">
+            <div style="font-size:28px;font-weight:700;color:#16a34a;">{{ sf_bullish|length }}</div>
+            <div style="font-size:12px;color:#166534;">🟢 看多推荐</div>
+        </div>
+        <div style="flex:1;min-width:120px;background:linear-gradient(135deg,#fee2e2,#fef2f2);border-radius:8px;padding:14px;text-align:center;border:1px solid #fecaca;">
+            <div style="font-size:28px;font-weight:700;color:#dc2626;">{{ sf_bearish|length }}</div>
+            <div style="font-size:12px;color:#991b1b;">🔴 看空推荐</div>
+        </div>
+        {% set sf_board_colors = {'沪市主板':'#3b82f6','深市主板':'#6366f1','创业板':'#f59e0b','科创板':'#ef4444','港股':'#ec4899'} %}
+        {% for bname, brecs in sf_boards.items() %}
+        <div style="flex:1;min-width:100px;background:#f8fafc;border-radius:8px;padding:10px;text-align:center;border-top:3px solid {{ sf_board_colors.get(bname, '#6b7280') }};">
+            <div style="font-size:13px;font-weight:700;color:#1a1a2e;">{{ bname }}</div>
+            <div style="font-size:20px;font-weight:700;color:{{ sf_board_colors.get(bname, '#6b7280') }};">{{ brecs|length }}</div>
+            <div style="font-size:10px;color:#6b7280;">只</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 看多/看空 Tab -->
+    <div class="reco-tabs" style="margin-bottom:16px;">
+        <div class="reco-tab active" onclick="showSfTab('all', this)">全部 ({{ sentiment_flow_recs|length }})</div>
+        <div class="reco-tab" onclick="showSfTab('bullish', this)" style="border-left:3px solid #16a34a;">🟢 看多 ({{ sf_bullish|length }})</div>
+        <div class="reco-tab" onclick="showSfTab('bearish', this)" style="border-left:3px solid #dc2626;">🔴 看空 ({{ sf_bearish|length }})</div>
+        {% for bname, brecs in sf_boards.items() %}
+        <div class="reco-tab" onclick="showSfTab('board-{{ loop.index }}', this)" style="border-left:3px solid {{ sf_board_colors.get(bname, '#6b7280') }};">
+            {{ ['🏛️','🏛️','🔬','🚀','🇭🇰'][loop.index0] if loop.index0 < 5 else '📊' }} {{ bname }} ({{ brecs|length }})
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- All tab -->
+    <div class="sf-tab-content active" id="sf-all">
+        {% for bname, brecs in sf_boards.items() %}
+        <div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0;">
+                <span style="font-weight:700;color:#1a1a2e;font-size:13px;">{{ bname }}</span>
+                <span style="font-size:11px;color:#6b7280;">{{ brecs|length }} 只</span>
+            </div>
+            <div class="reco-grid">
+            {% for rec in brecs %}
+                {% set is_bull = rec.direction == '看多' %}
+                <div class="reco-card {{ 'buy' if is_bull else 'sell' }}" style="border-left:4px solid {{ '#16a34a' if is_bull else '#dc2626' }};">
+                    <div class="reco-header">
+                        <div class="reco-stock-info">
+                            <span class="reco-stock-name">
+                                {% if rec.code %}
+                                <a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
+                                {% else %}{{ rec.name }}{% endif %}
+                            </span>
+                            {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                        </div>
+                        <span class="reco-badge {{ 'buy' if is_bull else 'sell' }}">{{ '🟢' if is_bull else '🔴' }} {{ rec.direction }}</span>
+                    </div>
+                    <div class="reco-confidence">
+                        <span class="reco-confidence-label">AI 信心</span>
+                        <div class="reco-confidence-track">
+                            <div class="reco-confidence-fill {{ 'high' if rec.confidence >= 70 else 'medium' if rec.confidence >= 40 else 'low' }}" style="width: {{ rec.confidence }}%;"></div>
+                        </div>
+                        <span class="reco-confidence-value">{{ rec.confidence }}%</span>
+                    </div>
+                    {% if rec.key_catalyst %}
+                    <div style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;margin-bottom:6px;">
+                        ⚡ {{ rec.key_catalyst }}
+                    </div>
+                    {% endif %}
+                    {% if rec.reason %}
+                    <div class="reco-key-reason">{{ rec.reason }}</div>
+                    {% endif %}
+                    {% if rec.risk_note %}
+                    <div style="font-size:11px;color:#6b7280;margin-top:4px;">⚠️ {{ rec.risk_note }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Bullish tab -->
+    <div class="sf-tab-content" id="sf-bullish">
+        <div class="reco-grid">
+        {% for rec in sf_bullish %}
+            <div class="reco-card buy">
+                <div class="reco-header">
+                    <div class="reco-stock-info">
+                        <span class="reco-stock-name">
+                            {% if rec.code %}<a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
+                            {% else %}{{ rec.name }}{% endif %}
+                        </span>
+                        {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                    </div>
+                    <span class="reco-badge buy">🟢 看多</span>
+                </div>
+                <div class="reco-confidence">
+                    <span class="reco-confidence-label">AI 信心</span>
+                    <div class="reco-confidence-track"><div class="reco-confidence-fill high" style="width: {{ rec.confidence }}%;"></div></div>
+                    <span class="reco-confidence-value">{{ rec.confidence }}%</span>
+                </div>
+                {% if rec.key_catalyst %}<div style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;margin-bottom:6px;">⚡ {{ rec.key_catalyst }}</div>{% endif %}
+                {% if rec.reason %}<div class="reco-key-reason">{{ rec.reason }}</div>{% endif %}
+                {% if rec.risk_note %}<div style="font-size:11px;color:#6b7280;">⚠️ {{ rec.risk_note }}</div>{% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <!-- Bearish tab -->
+    <div class="sf-tab-content" id="sf-bearish">
+        <div class="reco-grid">
+        {% for rec in sf_bearish %}
+            <div class="reco-card sell">
+                <div class="reco-header">
+                    <div class="reco-stock-info">
+                        <span class="reco-stock-name">
+                            {% if rec.code %}<a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
+                            {% else %}{{ rec.name }}{% endif %}
+                        </span>
+                        {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                    </div>
+                    <span class="reco-badge sell">🔴 看空</span>
+                </div>
+                <div class="reco-confidence">
+                    <span class="reco-confidence-label">AI 信心</span>
+                    <div class="reco-confidence-track"><div class="reco-confidence-fill" style="width: {{ rec.confidence }}%;background:#dc2626;"></div></div>
+                    <span class="reco-confidence-value">{{ rec.confidence }}%</span>
+                </div>
+                {% if rec.key_catalyst %}<div style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;margin-bottom:6px;">⚡ {{ rec.key_catalyst }}</div>{% endif %}
+                {% if rec.reason %}<div class="reco-key-reason">{{ rec.reason }}</div>{% endif %}
+                {% if rec.risk_note %}<div style="font-size:11px;color:#6b7280;">⚠️ {{ rec.risk_note }}</div>{% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+
+    <!-- Board-specific tabs -->
+    {% for bname, brecs in sf_boards.items() %}
+    <div class="sf-tab-content" id="sf-board-{{ loop.index }}">
+        <div class="reco-grid">
+        {% for rec in brecs %}
+            {% set is_bull = rec.direction == '看多' %}
+            <div class="reco-card {{ 'buy' if is_bull else 'sell' }}">
+                <div class="reco-header">
+                    <div class="reco-stock-info">
+                        <span class="reco-stock-name">
+                            {% if rec.code %}<a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
+                            {% else %}{{ rec.name }}{% endif %}
+                        </span>
+                        {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                    </div>
+                    <span class="reco-badge {{ 'buy' if is_bull else 'sell' }}">{{ '🟢 看多' if is_bull else '🔴 看空' }}</span>
+                </div>
+                <div class="reco-confidence">
+                    <span class="reco-confidence-label">AI 信心</span>
+                    <div class="reco-confidence-track"><div class="reco-confidence-fill {{ 'high' if rec.confidence >= 70 else 'medium' }}" style="width: {{ rec.confidence }}%;"></div></div>
+                    <span class="reco-confidence-value">{{ rec.confidence }}%</span>
+                </div>
+                {% if rec.key_catalyst %}<div style="font-size:11px;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;margin-bottom:6px;">⚡ {{ rec.key_catalyst }}</div>{% endif %}
+                {% if rec.reason %}<div class="reco-key-reason">{{ rec.reason }}</div>{% endif %}
+                {% if rec.risk_note %}<div style="font-size:11px;color:#6b7280;">⚠️ {{ rec.risk_note }}</div>{% endif %}
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <!-- ==================== 股票交易推荐 (v3.4 按板块分组) ==================== -->
 {% if stock_recommendations_by_board %}
 <div class="section">
@@ -1737,6 +1929,18 @@ function showFormula() {
 function hideFormula() {
     document.getElementById('formulaPopup').classList.remove('show');
     document.getElementById('formulaOverlay').classList.remove('show');
+}
+
+// ==================== Sentiment Flow Tabs (v3.5) ====================
+function showSfTab(tabName, btn) {
+    var section = btn.closest('.section');
+    var contents = section.querySelectorAll('.sf-tab-content');
+    contents.forEach(function(c) { c.classList.remove('active'); });
+    var tabs = section.querySelectorAll('.reco-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    var target = document.getElementById('sf-' + tabName);
+    if (target) target.classList.add('active');
+    if (btn) btn.classList.add('active');
 }
 
 // ==================== Board Tabs (v3.4) ====================

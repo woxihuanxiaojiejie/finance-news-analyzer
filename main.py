@@ -16,7 +16,10 @@ from datetime import datetime, timezone, timedelta
 import yaml
 from dotenv import load_dotenv
 
-from src.pipeline import fetch_all_news, deduplicate_news, batch_analyze, render_report
+from src.pipeline import (
+    fetch_all_news, deduplicate_news, batch_analyze,
+    generate_sentiment_flow_recommendations, render_report,
+)
 
 
 def setup_logging(log_dir: str) -> None:
@@ -144,22 +147,30 @@ def main() -> int:
     save_intermediate_data(deduped_news, data_dir, "deduped-news")
 
     # Step 3: AI 分析
-    logger.info("阶段 3/4: AI 分析...")
+    logger.info("阶段 3/5: AI 分析...")
     if args.skip_ai:
         logger.info("已跳过 AI 分析")
         for news in deduped_news:
             news["ai_analysis"] = None
+        sentiment_flow_recs = []
     else:
         ai_config = config.get("ai", {})
         analyzed_news = batch_analyze(deduped_news, ai_config, api_key, data_dir)
         save_intermediate_data(analyzed_news, data_dir, "analyzed-news")
 
+        # Step 3.5: 情绪+资金流推荐 (v3.5)
+        logger.info("阶段 3.5/5: 情绪+资金流推荐...")
+        sentiment_flow_recs = generate_sentiment_flow_recommendations(
+            deduped_news, ai_config, api_key, data_dir,
+        )
+
     # Step 4: 生成报告
-    logger.info("阶段 4/4: 生成 HTML 报告...")
+    logger.info("阶段 4/5: 生成 HTML 报告...")
     report_config = config.get("report", {})
     report_path = render_report(
         deduped_news, report_config, output_dir,
         source_stats=source_stats, errors=errors,
+        sentiment_flow_recs=sentiment_flow_recs,
     )
 
     analyzed_count = sum(1 for n in deduped_news if n.get('ai_analysis'))

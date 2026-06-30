@@ -623,6 +623,7 @@ def render_report(
     output_dir: str,
     source_stats: dict[str, int],
     errors: list[str],
+    sentiment_flow_recs: list[dict[str, Any]] | None = None,
 ) -> str:
     """渲染 HTML 报告，返回报告文件路径。"""
     today = datetime.now(timezone(timedelta(hours=8)))
@@ -669,6 +670,7 @@ def render_report(
         "watchlist": agg["watchlist"],
         "stock_recommendations": agg["stock_recommendations"],
         "stock_recommendations_by_board": agg["stock_recommendations_by_board"],  # v3.4
+        "sentiment_flow_recs": sentiment_flow_recs or [],  # v3.5: 情绪+资金流推荐
     }
 
     env = jinja2.Environment(

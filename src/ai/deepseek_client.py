@@ -217,6 +217,125 @@ class DeepSeekClient:
 
         return validated[:expected_count]
 
+    def recommend_by_sentiment_flow(self, prompt: str) -> dict[str, Any]:
+        """基于市场情绪和资金流向推荐股票。
+
+        返回结构：{ "success": bool, "results": list[dict] | None, "error": str | None }
+        """
+        if not prompt:
+            return {"success": True, "results": [], "error": None}
+
+        from .prompts import SENTIMENT_FLOW_SYSTEM_PROMPT
+
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                result = self._call_api_with_system(SENTIMENT_FLOW_SYSTEM_PROMPT, prompt)
+                if result["success"]:
+                    parsed = self._parse_sentiment_flow_result(result["text"])
+                    return {"success": True, "results": parsed, "error": None}
+
+                logger.warning(
+                    "情绪推荐调用失败（第 %d/%d 次）: %s",
+                    attempt, self.max_retries, result.get("error"),
+                )
+                if attempt < self.max_retries:
+                    time.sleep(self.retry_delay)
+
+            except Exception:
+                logger.exception(
+                    "情绪推荐调用异常（第 %d/%d 次）", attempt, self.max_retries
+                )
+                if attempt < self.max_retries:
+                    time.sleep(self.retry_delay)
+
+        return {
+            "success": False,
+            "results": None,
+            "error": f"情绪推荐调用失败，已重试 {self.max_retries} 次",
+        }
+
+    def _call_api_with_system(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
+        """使用自定义 system prompt 调用 API。"""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "temperature": self.temperature,
+            "stream": False,
+        }
+
+        resp = requests.post(
+            self.chat_url, headers=headers, json=payload, timeout=90
+        )
+        resp.raise_for_status()
+        body = resp.json()
+
+        choices = body.get("choices", [])
+        if not choices:
+            return {"success": False, "text": "", "error": "API 返回空 choices"}
+
+        text = choices[0].get("message", {}).get("content", "").strip()
+        if not text:
+            return {"success": False, "text": "", "error": "API 返回空内容"}
+
+        return {"success": True, "text": text, "error": None}
+
+    @staticmethod
+    def _parse_sentiment_flow_result(raw_text: str) -> list[dict]:
+        """解析情绪推荐结果。"""
+        text = raw_text.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[-1]
+            if "```" in text:
+                text = text.rsplit("```", 1)[0]
+        text = text.strip()
+
+        try:
+            results = json.loads(text)
+        except json.JSONDecodeError:
+            logger.warning("情绪推荐返回非标准 JSON，尝试修复...")
+            # Try extracting array
+            import re
+            start = text.find("[")
+            end = text.rfind("]")
+            if start != -1 and end != -1 and end > start:
+                try:
+                    results = json.loads(text[start:end + 1])
+                except json.JSONDecodeError:
+                    return []
+            else:
+                return []
+
+        if not isinstance(results, list):
+            return []
+
+        validated = []
+        valid_directions = {"看多", "看空"}
+        for item in results:
+            if not isinstance(item, dict):
+                continue
+            direction = item.get("direction", "")
+            if direction not in valid_directions:
+                continue
+            validated.append({
+                "name": item.get("name", ""),
+                "code": item.get("code", ""),
+                "board": item.get("board", ""),
+                "direction": direction,
+                "confidence": min(max(int(item.get("confidence", 50)), 0), 100),
+                "reason": item.get("reason", ""),
+                "key_catalyst": item.get("key_catalyst", ""),
+                "risk_note": item.get("risk_note", ""),
+            })
+
+        return validated
+
     @staticmethod
     def _try_fix_json(text: str) -> list:
         """尝试修复常见的 JSON 格式错误。"""

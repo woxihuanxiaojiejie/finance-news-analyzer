@@ -86,3 +86,130 @@ def build_user_prompt(news_list: list[dict]) -> str:
     """构建完整的用户提示词。"""
     news_text = format_news_for_prompt(news_list)
     return USER_PROMPT_TEMPLATE.format(count=len(news_list), news_items=news_text)
+
+
+# ==================== v3.5 情绪+资金流推荐 ====================
+
+SENTIMENT_FLOW_SYSTEM_PROMPT = """你是一位资深的量化策略分析师，擅长基于市场情绪和资金流向进行股票推荐。
+你的分析结合宏观情绪指标、板块轮动信号和个股基本面，给出明确的交易建议。
+
+请严格遵循以下要求：
+1. 输出必须是合法的 JSON 数组，不要包含任何 markdown 代码块标记。
+2. 每个元素是一个股票推荐对象，字段齐全。
+3. 不要添加任何额外的说明文字。
+4. 使用中文进行分析和回复。
+5. 推荐的股票必须真实存在，代码格式正确（如 600519.SH，000001.SZ，300750.SZ，688981.SH）。
+6. 必须覆盖多个板块：主板(600/601/603/000/001/002)、创业板(300/301)、科创板(688)。
+7. 每个板块至少推荐 4-5 只股票，总共推荐 20-30 只。尽量多推荐，宁多勿少。
+8. 推荐逻辑：看多情绪+资金流入的板块选龙头股和潜力股，看空情绪+资金流出的板块选弱势股。每个板块应同时包含看多和看空标的。
+"""
+
+SENTIMENT_FLOW_USER_PROMPT = """你是一位量化策略分析师。请基于以下市场数据，推荐各板块的看多和看空标的。
+
+## 市场情绪总览
+- 利好占比: {positive_pct}%
+- 中性占比: {neutral_pct}%
+- 利空占比: {negative_pct}%
+- 净情绪偏向: {net_bias}%（正值=偏乐观，负值=偏悲观）
+- 市场温度: {market_temperature}°C（0=极度悲观，100=极度乐观）
+- 平均影响力评分: {avg_impact}/10
+- 总分析新闻数: {total_analyzed} 条
+
+## 热点行业（按新闻数量排名）
+{top_industries}
+
+## 板块轮动信号
+{rotation_signals}
+
+## 今日高影响力新闻摘要
+{high_impact_news}
+
+## 当前新闻中已识别的关联股票（仅供参考，你可以推荐此列表之外的股票）
+{already_mentioned_stocks}
+
+---
+
+请基于以上数据，结合你的市场知识，按以下板块分别推荐看多和看空的股票：
+
+1. **沪市主板** (600/601/603 开头)：推荐 3-4 只看多 + 2-3 只看空
+2. **深市主板** (000/001/002 开头)：推荐 3-4 只看多 + 2-3 只看空
+3. **创业板** (300/301 开头)：推荐 3-4 只看多 + 2-3 只看空
+4. **科创板** (688 开头)：推荐 3-4 只看多 + 2-3 只看空
+5. 如有明显的港股机会，补充 2-3 只港股（看多或看空均可）
+
+对每只股票返回以下 JSON 字段：
+- name: 股票名称
+- code: 股票代码（如 600519.SH）
+- board: 所属板块，"沪市主板"/"深市主板"/"创业板"/"科创板"/"港股"
+- direction: "看多" 或 "看空"
+- confidence: 信心评分 (0-100)，基于情绪和资金流的确定性
+- reason: 推荐理由（80 字以内），必须关联具体的情绪指标或资金流向信号
+- key_catalyst: 关键催化剂（30 字以内），最核心的驱动事件
+- risk_note: 风险提示（30 字以内）
+
+请直接输出 JSON 数组，格式示例：
+[
+  {{
+    "name": "贵州茅台",
+    "code": "600519.SH",
+    "board": "沪市主板",
+    "direction": "看多",
+    "confidence": 85,
+    "reason": "消费板块情绪回暖，北向资金持续流入白酒板块，茅台作为龙头率先受益",
+    "key_catalyst": "消费复苏+北向资金流入",
+    "risk_note": "短期涨幅较大注意回调风险"
+  }}
+]
+
+共推荐 12-20 只股票，确保覆盖至少 4 个板块。
+请直接输出 JSON 数组，不要包含其他任何内容。"""
+
+
+def build_sentiment_flow_prompt(
+    sentiment_overview: dict,
+    market_temperature: int,
+    avg_impact: float,
+    total_analyzed: int,
+    industry_ranked: list,
+    rotation_signals: list,
+    high_impact_news: list,
+    existing_stocks: list,
+) -> str:
+    """构建情绪+资金流推荐提示词。"""
+    # 热点行业
+    top_industries = "\n".join(
+        f"- {ind}：{len(news_list)} 条相关新闻"
+        for ind, news_list in industry_ranked[:8]
+    ) if industry_ranked else "（无）"
+
+    # 轮动信号
+    if rotation_signals:
+        rotation_text = "\n".join(
+            f"- {sig['rotation_detail']}（影响力: {sig.get('impact_score', 'N/A')}/10）"
+            for sig in rotation_signals[:5]
+        )
+    else:
+        rotation_text = "（当日无明显板块轮动信号）"
+
+    # 高影响力新闻
+    high_impact_text = "\n".join(
+        f"- [{news.get('ai_analysis', {}).get('sentiment', '中性')}] {news.get('title', '')}"
+        for news in high_impact_news[:5]
+    ) if high_impact_news else "（无）"
+
+    # 已识别的股票
+    existing_text = "、".join(existing_stocks[:30]) if existing_stocks else "（无）"
+
+    return SENTIMENT_FLOW_USER_PROMPT.format(
+        positive_pct=sentiment_overview.get("positive_pct", 0),
+        neutral_pct=sentiment_overview.get("neutral_pct", 0),
+        negative_pct=sentiment_overview.get("negative_pct", 0),
+        net_bias=sentiment_overview.get("net_bias", 0),
+        market_temperature=market_temperature,
+        avg_impact=avg_impact,
+        total_analyzed=total_analyzed,
+        top_industries=top_industries,
+        rotation_signals=rotation_text,
+        high_impact_news=high_impact_text,
+        already_mentioned_stocks=existing_text,
+    )
