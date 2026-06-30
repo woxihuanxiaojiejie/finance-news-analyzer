@@ -381,6 +381,8 @@ body {
 .reco-tab-content.active { display: block; }
 .bb-tab-content { display: none; }
 .bb-tab-content.active { display: block; }
+.board-tab-content { display: none; }
+.board-tab-content.active { display: block; }
 .stock-tab-content { display: none; }
 .stock-tab-content.active { display: block; }
 
@@ -1246,38 +1248,158 @@ body {
 </div>
 {% endif %}
 
-<!-- ==================== 股票交易推荐 (v3.2 板块分区 + 链接 + 参数解释) ==================== -->
-{% if stock_recommendations %}
+<!-- ==================== 股票交易推荐 (v3.4 按板块分组) ==================== -->
+{% if stock_recommendations_by_board %}
 <div class="section">
-    <h2>📈 股票交易推荐 <span class="tag" style="background:#ecfdf5;color:#059669;">{{ stock_recommendations|length }} 只</span></h2>
+    <h2>📈 股票交易推荐
+        <span class="tag" style="background:#ecfdf5;color:#059669;">{{ stock_recommendations|length }} 只</span>
+    </h2>
     <div style="font-size:12px;color:#9ca3af;margin:-12px 0 16px;">
-        基于 AI 多空分析综合评分，按信号强弱排序。仅供参考，不构成投资建议。
+        基于 AI 多空分析综合评分，按板块分类展示。仅供参考，不构成投资建议。
     </div>
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#374151;line-height:1.8;">
         <div style="font-weight:600;margin-bottom:6px;">📊 参数说明</div>
         <div><strong>信号强度 (0-10)</strong>：衡量信号可靠性。计算 = min(提及次数×2, 10) + 一致性加分。满分10分，≥7为可靠信号。</div>
-        <div><strong>综合信号 (±10)</strong>：衡量多空方向。计算 = Σ(情绪值×影响力) ÷ 提及次数。正值看好，负值看空。例：2条利好新闻影响力8和6，信号 = (1×8+1×6)÷2 = <strong>+7</strong>。</div>
+        <div><strong>综合信号 (±10)</strong>：衡量多空方向。计算 = Σ(情绪值×影响力) ÷ 提及次数。正值看好，负值看空。</div>
+        <div><strong>⚠️ 交易门槛</strong>：科创板(688)需50万资产，创业板(300/301)需10万资产，北交所(8开头)需50万资产。请根据自身条件选择。</div>
     </div>
 
-    <!-- Tab navigation -->
-    <div class="reco-tabs">
-        <div class="reco-tab active" onclick="showRecoTab('all', this)">全部 ({{ stock_recommendations|length }})</div>
-        {% set buy_list = stock_recommendations|selectattr('recommendation', 'equalto', '买入')|list %}
-        {% set acc_list = stock_recommendations|selectattr('recommendation', 'equalto', '增持')|list %}
-        {% set hold_list = stock_recommendations|selectattr('recommendation', 'equalto', '观望')|list %}
-        {% set reduce_list = stock_recommendations|selectattr('recommendation', 'equalto', '减持')|list %}
-        {% set sell_list = stock_recommendations|selectattr('recommendation', 'equalto', '卖出')|list %}
-        {% if buy_list %}<div class="reco-tab" onclick="showRecoTab('buy', this)">🟢 买入 ({{ buy_list|length }})</div>{% endif %}
-        {% if acc_list %}<div class="reco-tab" onclick="showRecoTab('accumulate', this)">🟩 增持 ({{ acc_list|length }})</div>{% endif %}
-        {% if hold_list %}<div class="reco-tab" onclick="showRecoTab('hold', this)">⬜ 观望 ({{ hold_list|length }})</div>{% endif %}
-        {% if reduce_list %}<div class="reco-tab" onclick="showRecoTab('reduce', this)">🟧 减持 ({{ reduce_list|length }})</div>{% endif %}
-        {% if sell_list %}<div class="reco-tab" onclick="showRecoTab('sell', this)">🔴 卖出 ({{ sell_list|length }})</div>{% endif %}
+    <!-- 板块总览条形图 -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+        {% for board_info in stock_recommendations_by_board %}
+        <div style="flex:1;min-width:140px;background:#f8fafc;border-radius:8px;padding:12px;text-align:center;border-top:3px solid {{ board_info.color }};">
+            <div style="font-size:20px;">{{ board_info.icon }}</div>
+            <div style="font-size:13px;font-weight:700;color:#1a1a2e;margin:4px 0;">{{ board_info.label }}</div>
+            <div style="font-size:22px;font-weight:700;color:{{ board_info.color }};">{{ board_info.count }}</div>
+            <div style="font-size:11px;color:#6b7280;">只推荐</div>
+            <div style="font-size:10px;color:#9ca3af;margin-top:2px;">
+                {% if board_info.buy_count > 0 %}🟢{{ board_info.buy_count }} 看多{% endif %}
+                {% if board_info.sell_count > 0 %} 🔴{{ board_info.sell_count }} 看空{% endif %}
+            </div>
+            {% if board_info.note %}<div style="font-size:10px;color:{{ board_info.color }};margin-top:2px;">{{ board_info.note }}</div>{% endif %}
+        </div>
+        {% endfor %}
     </div>
 
-    <!-- All tab -->
-    <div class="reco-tab-content active" id="reco-all">
+    <!-- 板块 Tab 导航 -->
+    <div class="reco-tabs" style="margin-bottom:16px;">
+        {% set all_count_ns = namespace(val=0) %}
+        {% for bi in stock_recommendations_by_board %}{% set all_count_ns.val = all_count_ns.val + bi.count %}{% endfor %}
+        <div class="reco-tab active" onclick="showBoardTab('all', this)">全部 ({{ all_count_ns.val }})</div>
+        {% for board_info in stock_recommendations_by_board %}
+        <div class="reco-tab" onclick="showBoardTab('{{ board_info.key }}', this)" style="border-left:3px solid {{ board_info.color }};">
+            {{ board_info.icon }} {{ board_info.label }} ({{ board_info.count }})
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 全部 Tab -->
+    <div class="board-tab-content active" id="board-all">
+        {% for board_info in stock_recommendations_by_board %}
+        <div style="margin-bottom:24px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #e2e8f0;">
+                <span style="font-size:18px;">{{ board_info.icon }}</span>
+                <span style="font-size:14px;font-weight:700;color:#1a1a2e;">{{ board_info.label }}</span>
+                <span style="font-size:11px;color:#6b7280;">{{ board_info.count }} 只</span>
+                {% if board_info.note %}
+                <span style="font-size:10px;padding:1px 6px;border-radius:8px;background:{% if '无门槛' in board_info.note %}#dcfce7;color:#16a34a{% elif '10 万' in board_info.note %}#fef3c7;color:#d97706{% else %}#fee2e2;color:#dc2626{% endif %};">
+                    {{ board_info.note }}
+                </span>
+                {% endif %}
+            </div>
+            <div class="reco-grid">
+            {% for rec in board_info.recommendations %}
+                {% set rec_css = 'buy' if rec.recommendation == '买入'
+                    else 'accumulate' if rec.recommendation == '增持'
+                    else 'hold' if rec.recommendation == '观望'
+                    else 'reduce' if rec.recommendation == '减持'
+                    else 'sell' %}
+                {% set conf_class = 'high' if rec.confidence >= 7
+                    else 'medium' if rec.confidence >= 4
+                    else 'low' %}
+                {% set signal_class = 'positive' if rec.avg_signal > 0
+                    else 'negative' if rec.avg_signal < 0
+                    else 'neutral' %}
+                {% set rec_emoji = '🟢' if rec.recommendation == '买入'
+                    else '🟩' if rec.recommendation == '增持'
+                    else '⬜' if rec.recommendation == '观望'
+                    else '🟧' if rec.recommendation == '减持'
+                    else '🔴' %}
+                <div class="reco-card {{ rec_css }}" data-board="{{ rec.board }}">
+                    <div class="reco-header">
+                        <div class="reco-stock-info">
+                            <span style="font-size:10px;color:#9ca3af;display:block;">{{ board_info.icon }} {{ board_info.label }}</span>
+                            <span class="reco-stock-name">
+                                {% if rec.code %}
+                                <a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
+                                {% else %}
+                                {{ rec.name }}
+                                {% endif %}
+                            </span>
+                            {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
+                        </div>
+                        <span class="reco-badge {{ rec_css }}">{{ rec_emoji }} {{ rec.recommendation }}</span>
+                    </div>
+                    <div class="reco-confidence">
+                        <span class="reco-confidence-label">信号强度</span>
+                        <div class="reco-confidence-track">
+                            <div class="reco-confidence-fill {{ conf_class }}" style="width: {{ rec.confidence * 10 }}%;"></div>
+                        </div>
+                        <span class="reco-confidence-value" style="color: {% if rec.confidence >= 7 %}#16a34a{% elif rec.confidence >= 4 %}#f59e0b{% else %}#94a3b8{% endif %};">
+                            {{ rec.confidence }}/10
+                        </span>
+                    </div>
+                    <div class="reco-signal-row">
+                        <span>综合信号:</span>
+                        <span class="reco-signal-value {{ signal_class }}">
+                            {% if rec.avg_signal > 0 %}+{% endif %}{{ rec.avg_signal }}
+                        </span>
+                        <span class="reco-count">📰 {{ rec.count }} 次提及</span>
+                        <span class="sentiment-{{ 'positive' if rec.sentiment_label == '利好' else 'negative' if rec.sentiment_label == '利空' else 'neutral' }}">
+                            {{ rec.sentiment_label }}
+                        </span>
+                    </div>
+                    {% if rec.key_reason %}
+                    <div class="reco-key-reason">{{ rec.key_reason }}</div>
+                    {% endif %}
+                    <div class="reco-meta-row">
+                        {% if rec.risk_level == '高' %}<span class="risk-high">高风险</span>
+                        {% elif rec.risk_level == '中' %}<span class="risk-medium">中风险</span>
+                        {% else %}<span class="risk-low">低风险</span>{% endif %}
+                        {% if rec.trend == '短期' %}<span class="trend-chip short">短期</span>
+                        {% elif rec.trend == '中期' %}<span class="trend-chip mid">中期</span>
+                        {% else %}<span class="trend-chip long">长期</span>{% endif %}
+                        <span style="font-size:11px;color:#6b7280;">一致性 {{ (rec.consensus * 100)|int }}%</span>
+                    </div>
+                    {% if rec.news_links %}
+                    <ul class="reco-news-list">
+                        {% for link in rec.news_links[:3] %}
+                        <li><a href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.title }}">{{ link.title }}</a></li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 各板块独立 Tab -->
+    {% for board_info in stock_recommendations_by_board %}
+    <div class="board-tab-content" id="board-{{ board_info.key }}">
+        <div style="margin-bottom:16px;display:flex;align-items:center;gap:8px;">
+            <span style="font-size:18px;">{{ board_info.icon }}</span>
+            <span style="font-size:14px;font-weight:700;color:#1a1a2e;">{{ board_info.label }}</span>
+            {% if board_info.note %}
+            <span style="font-size:10px;padding:2px 8px;border-radius:8px;background:{% if '无门槛' in board_info.note %}#dcfce7;color:#16a34a{% elif '10 万' in board_info.note %}#fef3c7;color:#d97706{% else %}#fee2e2;color:#dc2626{% endif %};">
+                {{ board_info.note }}
+            </span>
+            {% endif %}
+            <span style="font-size:11px;color:#6b7280;">共 {{ board_info.count }} 只，🟢 看多 {{ board_info.buy_count }} 只，🔴 看空 {{ board_info.sell_count }} 只</span>
+        </div>
         <div class="reco-grid">
-        {% for rec in stock_recommendations %}
+        {% for rec in board_info.recommendations %}
             {% set rec_css = 'buy' if rec.recommendation == '买入'
                 else 'accumulate' if rec.recommendation == '增持'
                 else 'hold' if rec.recommendation == '观望'
@@ -1294,97 +1416,6 @@ body {
                 else '⬜' if rec.recommendation == '观望'
                 else '🟧' if rec.recommendation == '减持'
                 else '🔴' %}
-            <div class="reco-card {{ rec_css }}" data-reco="{{ rec_css }}">
-                <div class="reco-header">
-                    <div class="reco-stock-info">
-                        <span class="reco-stock-name">
-                            {% if rec.code %}
-                            <a class="reco-stock-link" href="https://cn.bing.com/search?q={{ rec.code }}" target="_blank" rel="noopener">{{ rec.name }}</a>
-                            {% else %}
-                            {{ rec.name }}
-                            {% endif %}
-                        </span>
-                        {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
-                    </div>
-                    <span class="reco-badge {{ rec_css }}">{{ rec_emoji }} {{ rec.recommendation }}</span>
-                </div>
-
-                <!-- Confidence Bar with tooltip -->
-                <div class="reco-confidence">
-                    <span class="reco-confidence-label">信号强度</span>
-                    <div class="reco-confidence-track">
-                        <div class="reco-confidence-fill {{ conf_class }}" style="width: {{ rec.confidence * 10 }}%;"></div>
-                    </div>
-                    <span class="reco-confidence-value" style="color: {% if rec.confidence >= 7 %}#16a34a{% elif rec.confidence >= 4 %}#f59e0b{% else %}#94a3b8{% endif %};">
-                        {{ rec.confidence }}/10
-                    </span>
-                </div>
-
-                <!-- Signal Row with tooltip -->
-                <div class="reco-signal-row">
-                    <span>综合信号:</span>
-                    <span class="reco-signal-value {{ signal_class }}">
-                        {% if rec.avg_signal > 0 %}+{% endif %}{{ rec.avg_signal }}
-                    </span>
-                    <span class="reco-count">📰 {{ rec.count }} 次提及</span>
-                    <span class="sentiment-{{ 'positive' if rec.sentiment_label == '利好' else 'negative' if rec.sentiment_label == '利空' else 'neutral' }}">
-                        {{ rec.sentiment_label }}
-                    </span>
-                </div>
-
-                <!-- Key Reason -->
-                {% if rec.key_reason %}
-                <div class="reco-key-reason">{{ rec.key_reason }}</div>
-                {% endif %}
-
-                <!-- Meta Tags -->
-                <div class="reco-meta-row">
-                    {% if rec.risk_level == '高' %}
-                    <span class="risk-high">高风险</span>
-                    {% elif rec.risk_level == '中' %}
-                    <span class="risk-medium">中风险</span>
-                    {% else %}
-                    <span class="risk-low">低风险</span>
-                    {% endif %}
-                    {% if rec.trend == '短期' %}
-                    <span class="trend-chip short">短期</span>
-                    {% elif rec.trend == '中期' %}
-                    <span class="trend-chip mid">中期</span>
-                    {% else %}
-                    <span class="trend-chip long">长期</span>
-                    {% endif %}
-                    <span style="font-size:11px;color:#6b7280;">
-                        一致性 {{ (rec.consensus * 100)|int }}%
-                    </span>
-                </div>
-
-                <!-- Related News with links -->
-                {% if rec.news_links %}
-                <ul class="reco-news-list">
-                    {% for link in rec.news_links[:3] %}
-                    <li><a href="{{ link.url }}" target="_blank" rel="noopener" title="{{ link.title }}">{{ link.title }}</a></li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
-            </div>
-        {% endfor %}
-        </div>
-    </div>
-
-    <!-- Individual tabs (hidden by default) -->
-    {% for tab_name, tab_label, tab_emoji in [('buy', '买入', '🟢'), ('accumulate', '增持', '🟩'), ('hold', '观望', '⬜'), ('reduce', '减持', '🟧'), ('sell', '卖出', '🔴')] %}
-    {% set tab_list = stock_recommendations|selectattr('recommendation', 'equalto', tab_label)|list %}
-    {% if tab_list %}
-    <div class="reco-tab-content" id="reco-{{ tab_name }}">
-        <div class="reco-grid">
-        {% for rec in tab_list %}
-            {% set rec_css = tab_name %}
-            {% set conf_class = 'high' if rec.confidence >= 7
-                else 'medium' if rec.confidence >= 4
-                else 'low' %}
-            {% set signal_class = 'positive' if rec.avg_signal > 0
-                else 'negative' if rec.avg_signal < 0
-                else 'neutral' %}
             <div class="reco-card {{ rec_css }}">
                 <div class="reco-header">
                     <div class="reco-stock-info">
@@ -1397,7 +1428,7 @@ body {
                         </span>
                         {% if rec.code %}<span class="reco-stock-code">{{ rec.code }}</span>{% endif %}
                     </div>
-                    <span class="reco-badge {{ rec_css }}">{{ tab_emoji }} {{ rec.recommendation }}</span>
+                    <span class="reco-badge {{ rec_css }}">{{ rec_emoji }} {{ rec.recommendation }}</span>
                 </div>
                 <div class="reco-confidence">
                     <span class="reco-confidence-label">信号强度</span>
@@ -1437,7 +1468,6 @@ body {
         {% endfor %}
         </div>
     </div>
-    {% endif %}
     {% endfor %}
 </div>
 {% endif %}
@@ -1707,6 +1737,21 @@ function showFormula() {
 function hideFormula() {
     document.getElementById('formulaPopup').classList.remove('show');
     document.getElementById('formulaOverlay').classList.remove('show');
+}
+
+// ==================== Board Tabs (v3.4) ====================
+function showBoardTab(tabName, btn) {
+    // Hide all board tab contents
+    var contents = document.querySelectorAll('.board-tab-content');
+    contents.forEach(function(c) { c.classList.remove('active'); });
+    // Deactivate all tabs
+    var tabs = document.querySelectorAll('.reco-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    // Show selected tab content
+    var target = document.getElementById('board-' + tabName);
+    if (target) target.classList.add('active');
+    // Activate clicked tab
+    if (btn) btn.classList.add('active');
 }
 
 // ==================== Stock Recommendation Tabs ====================

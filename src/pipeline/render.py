@@ -72,6 +72,62 @@ def _watchlist_risk(news_list_for_ind):
 
 # ---------- v3.1 股票交易推荐 ----------
 
+def _get_board(code: str) -> tuple[str, str, str]:
+    """根据股票代码识别所属板块。
+
+    返回 (board_key, board_name, access_note)
+
+    A 股板块分类：
+    - 沪市主板: 600/601/603/605 开头
+    - 深市主板: 000/001/002/003 开头
+    - 创业板(GEM): 300/301 开头 — 需 10 万资产 + 2 年经验
+    - 科创板(STAR): 688 开头 — 需 50 万资产 + 2 年经验
+    - 北交所: 8 开头(非 8xxxxx.HK) — 需 50 万资产 + 2 年经验
+    - 港股: .HK 后缀
+    - 其他: 无法识别
+    """
+    if not code:
+        return ("unknown", "其他", "")
+
+    code_upper = code.upper().strip()
+
+    # 港股（优先检查，因为 .HK 后缀很明确）
+    if ".HK" in code_upper:
+        return ("hk", "港股", "港股通")
+
+    # 提取数字部分
+    import re
+    m = re.match(r'^(\d{5,6})', code_upper.replace(".SH", "").replace(".SZ", "").replace(".BJ", ""))
+    if not m:
+        return ("unknown", "其他", "")
+
+    prefix = m.group(1)
+    prefix_3 = prefix[:3]
+    prefix_num = int(prefix_3) if prefix_3.isdigit() else 0
+
+    # 科创板: 688xxx
+    if prefix.startswith("688"):
+        return ("star", "科创板", "需 50 万资产")
+
+    # 创业板: 300xxx, 301xxx
+    if prefix_3 in ("300", "301"):
+        return ("gem", "创业板", "需 10 万资产")
+
+    # 沪市主板: 600-605xxx
+    if 600 <= prefix_num <= 605:
+        return ("sh_main", "沪市主板", "无门槛")
+
+    # 深市主板: 000-003xxx
+    if 0 <= prefix_num <= 3:
+        return ("sz_main", "深市主板", "无门槛")
+
+    # 北交所: 8xxxxx (6位数字，排除港股)
+    if prefix.startswith("8") and len(prefix) >= 5:
+        return ("bse", "北交所", "需 50 万资产")
+
+    return ("unknown", "其他", "")
+
+
 def _compute_stock_recommendations(stock_map: dict[str, dict]) -> list[dict]:
     """基于 AI 分析数据计算每只股票的交易推荐信号。
 
@@ -146,6 +202,9 @@ def _compute_stock_recommendations(stock_map: dict[str, dict]) -> list[dict]:
         # 10. 新闻链接列表（含 url）
         news_links = info.get("news_links", [])
 
+        # 11. 板块分类
+        board_key, board_name, access_note = _get_board(code)
+
         recommendations.append({
             "name": info["name"],
             "code": info["code"],
@@ -163,6 +222,9 @@ def _compute_stock_recommendations(stock_map: dict[str, dict]) -> list[dict]:
             "key_reason": key_reason,
             "news_titles": info.get("news_titles", []),
             "news_links": news_links,   # v3.2: 新闻标题+链接
+            "board": board_key,         # v3.4: 板块标识
+            "board_name": board_name,   # v3.4: 板块中文名
+            "access_note": access_note, # v3.4: 交易门槛说明
         })
 
     # 按 |avg_signal| * confidence 降序排列（最强信号在前）
@@ -374,6 +436,46 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
     # ---- v3.1 股票交易推荐 ----
     stock_recommendations = _compute_stock_recommendations(stock_map)
 
+    # ---- v3.4 按板块分组 ----
+    # 板块显示顺序: 主板(可以交易) → 创业板(10万门槛) → 科创板(50万) → 北交所 → 港股 → 其他
+    BOARD_ORDER = ["sh_main", "sz_main", "gem", "star", "bse", "hk", "unknown"]
+    BOARD_LABELS = {
+        "sh_main": ("沪市主板", "🏛️", "#3b82f6", "无门槛，可交易"),
+        "sz_main": ("深市主板", "🏛️", "#6366f1", "无门槛，可交易"),
+        "gem": ("创业板", "🔬", "#f59e0b", "需 10 万资产"),
+        "star": ("科创板", "🚀", "#ef4444", "需 50 万资产"),
+        "bse": ("北交所", "📊", "#8b5cf6", "需 50 万资产"),
+        "hk": ("港股", "🇭🇰", "#ec4899", "港股通"),
+        "unknown": ("其他", "❓", "#6b7280", ""),
+    }
+    recommendations_by_board: dict[str, list[dict]] = {}
+    for rec in stock_recommendations:
+        board_key = rec.get("board", "unknown")
+        if board_key not in recommendations_by_board:
+            recommendations_by_board[board_key] = []
+        recommendations_by_board[board_key].append(rec)
+
+    # 按 BOARD_ORDER 排序，保持每个板块内部按信号强度排序
+    board_summary = []
+    for bk in BOARD_ORDER:
+        if bk in recommendations_by_board:
+            label, icon, color, note = BOARD_LABELS.get(bk, (bk, "", "#6b7280", ""))
+            recs = recommendations_by_board[bk]
+            # 统计该板块的推荐操作分布
+            buy_count = sum(1 for r in recs if r["recommendation"] in ("买入", "增持"))
+            sell_count = sum(1 for r in recs if r["recommendation"] in ("卖出", "减持"))
+            board_summary.append({
+                "key": bk,
+                "label": label,
+                "icon": icon,
+                "color": color,
+                "note": note,
+                "count": len(recs),
+                "buy_count": buy_count,
+                "sell_count": sell_count,
+                "recommendations": recs,
+            })
+
     # ---- 来源统计 ----
     source_stats: dict[str, int] = {}
     total_analyzed = 0
@@ -509,6 +611,7 @@ def _aggregate_for_report(news_list: list[dict[str, Any]]) -> dict:
         "capital_flow": capital_flow,
         "watchlist": watchlist,
         "stock_recommendations": stock_recommendations,  # v3.1
+        "stock_recommendations_by_board": board_summary,  # v3.4: 按板块分组
     }
 
 
@@ -565,6 +668,7 @@ def render_report(
         "capital_flow": agg["capital_flow"],
         "watchlist": agg["watchlist"],
         "stock_recommendations": agg["stock_recommendations"],
+        "stock_recommendations_by_board": agg["stock_recommendations_by_board"],  # v3.4
     }
 
     env = jinja2.Environment(
